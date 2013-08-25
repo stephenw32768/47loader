@@ -3,8 +3,9 @@
         ;; 47loader (c) Stephen Williams 2013
         ;; See LICENSE for distribution terms
 
-        .dest:  equ     0xfb00
+.dest:  equ     0xfb00
 
+        ;; relocate loader
         ld      de,.dest
         push    bc
         pop     hl              ; entry address now in HL
@@ -13,20 +14,29 @@
         ld      bc,.reloc_len
         ldir
 
-        ;; load directly into screen
-        ld      ix,0x4000
-        ld      de,0x1b00
+        ;; the run-length decoder and compressed screen are
+        ;; loaded together
+.rldecoder:equ  0xe000
+.rldecoder_len:equ 29
+.screen_len:equ 2978
+        ld      ix,.rldecoder
+        ld      de,.rldecoder_len + .screen_len
 
-        ;; GO!
+        ;; load the decoder and screen
         call    loader_entry
 
         ;; if it returned carry set, all went well
         jr      nc,.err
 
-        ;; black border to finish
+        ;; turn border black
         ;; (loader leaves zero in accumulator)
         out     (0xfe),a
-        ret
+
+        ;; decode the screen directly into video RAM
+        ld      hl,0x4000
+        ld      de,.rldecoder + .rldecoder_len ; decoder comes before screen
+        ld      bc,.screen_len
+        jp      .rldecoder      ; will return to BASIC after decoding
 
 .err:
         ;; if it returned zero set, BREAK was pressed
@@ -38,10 +48,7 @@
 .reloc_start:   equ     $
         .phase  .dest
 
-;LOADER_TWO_EDGE_SYNC:   equ 1
-;LOADER_THEME_ORIGINAL:equ 1
-LOADER_THEME_RAINBOW:equ 1
-;LOADER_THEME_RAINBOW_RIPPLE:equ 1
-;LOADER_THEME_LDBYTES:equ 1
+LOADER_TWO_EDGE_SYNC:   equ 1
+LOADER_THEME_JUBILEE:equ 1
         include "47loader.asm"
 .reloc_len: equ $ - .dest
