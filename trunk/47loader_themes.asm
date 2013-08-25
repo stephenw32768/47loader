@@ -1,3 +1,6 @@
+        ;; 47loader (c) Stephen Williams 2013
+        ;; See LICENSE for distribution terms
+
         ;; Border themes for 47loader
 
         ;; Each theme defines three macros:
@@ -17,6 +20,7 @@
         ;; LOADER_THEME_LDBYTES
         ;; LOADER_THEME_JUBILEE
         ;; LOADER_THEME_RAINBOW
+        ;; LOADER_THEME_RAINBOW_RIPPLE
 
 
         ifdef LOADER_THEME_ORIGINAL
