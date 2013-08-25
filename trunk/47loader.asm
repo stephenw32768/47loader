@@ -1,6 +1,5 @@
         ;; 47loader (c) Stephen Williams 2013
         ;; See LICENSE for distribution terms
-        ;; Released into the public domain.  Do as thou wilt.
 
 loader_start:
 
