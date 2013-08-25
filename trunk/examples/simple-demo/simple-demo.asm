@@ -1,14 +1,14 @@
         org     0
 
+        ;; 47loader (c) Stephen Williams 2013
+        ;; See LICENSE for distribution terms
+
         .dest:  equ     0xfb00
 
-.msg_start:equ $
-        ;dm      '** 47loader **',13,13,13
-.msg_len:equ $-.msg_start
         ld      de,.dest
         push    bc
         pop     hl              ; entry address now in HL
-        ld      bc,.reloc_start-.msg_len
+        ld      bc,.reloc_start
         add     hl,bc
         ld      bc,.reloc_len
         ldir
