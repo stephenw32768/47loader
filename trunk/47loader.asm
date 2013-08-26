@@ -199,7 +199,13 @@ loader_read_edge:
 .read_edge_loop:
         inc     b                 ; increment counter (4T)
         ret     z                 ; give up if wrapped round (5T)
+        ifndef LOADER_DIE_ON_ERROR
         ld      a,0x7f            ; read port 0x7ffe (7T)
+        else
+        ;; breaking out is disallowed if DIE_ON_ERROR is set;
+        ;; there's probably no BASIC left to return to...
+        ld      a,0xff            ; read port 0xfffe (no keyboard) (7T)
+        endif
         in      a,(0xfe)          ; (11T)
         and     0x41              ; look only at EAR/BREAK bits (7T)
 .current_edge_mask:equ $ + 1
@@ -218,12 +224,12 @@ loader_read_edge:
         out     (0xfe),a          ; switch border and make sound (11T)
 .exit_edge_loop:
         ret                       ; (10T)
-.break_pressed:
         ifndef  LOADER_DIE_ON_ERROR
+.break_pressed:
         xor     a                 ; clear carry and set zero to signal BREAK
         jr      .exit             ; bail straight out
         else
-        rst     0
+.break_pressed:equ .read_edge_loop; should never happen...
         endif
 
         ;; reads eight bits, leaving the result in register C
