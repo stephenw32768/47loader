@@ -156,7 +156,9 @@ loader_entry:
         ;; carry clear and zero clear indicates load error
 .sp:    equ     $ + 1
         ld      sp,0            ; unwind stack if necessary
+        ifndef  LOADER_LEAVE_INTERRUPTS_DISABLED
         ei
+        endif
         ret
         
         ;; reads a byte, checking it against the expected binary
@@ -170,9 +172,13 @@ loader_entry:
         nop                     ; room for one-byte instruction
         ld      sp,(.sp)        ; unwind stack if necessary
         jr      c,.loader_init  ; start again if carry set
+        ifndef  LOADER_DIE_ON_ERROR
         ;; indicate load error by clearing both carry and zero
         or      1
         jr      .exit
+        else
+        rst     0
+        endif
 
         ;; spins in a loop until an edge is found.
         ;; If BREAK/SPACE is pressed, bails out to .exit with
@@ -213,8 +219,12 @@ loader_read_edge:
 .exit_edge_loop:
         ret                       ; (10T)
 .break_pressed:
+        ifndef  LOADER_DIE_ON_ERROR
         xor     a                 ; clear carry and set zero to signal BREAK
         jr      .exit             ; bail straight out
+        else
+        rst     0
+        endif
 
         ;; reads eight bits, leaving the result in register C
 .read_byte:
