@@ -17,7 +17,7 @@
         ;; the run-length decoder and compressed screen are
         ;; loaded together
 .rldecoder:equ  0xe000
-.rldecoder_len:equ 29
+.rldecoder_len:equ 22
 .screen_len:equ 2978
         ld      ix,.rldecoder
         ld      de,.rldecoder_len + .screen_len
@@ -33,8 +33,8 @@
         out     (0xfe),a
 
         ;; decode the screen directly into video RAM
-        ld      hl,0x4000
-        ld      de,.rldecoder + .rldecoder_len ; decoder comes before screen
+        ld      de,0x4000
+        ld      hl,.rldecoder + .rldecoder_len ; decoder comes before screen
         ld      bc,.screen_len
         jp      .rldecoder      ; will return to BASIC after decoding
 
