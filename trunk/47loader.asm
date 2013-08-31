@@ -47,16 +47,17 @@ loader_start:
 loader_entry:
         di
         ld      (.sp),sp        ; save initial stack pointer
+        ;; set load error jump target to return to beginning
+        ld      a,.loader_init-.load_error_target-1
+        ld      (.load_error_target),a
+        ld      c,0xfe          ; initialize input port address
 
         ;; and so begins the "searching" phase.  Start by
         ;; setting up the environment
 .loader_init:
-        ld      a,0x37          ; opcode for SCF
-        ld      (.load_error),a ; load errors return to beginning
         xor     a               ; clear accumulator
         ld      (.checksum),a   ; zero checksum
         ld      h,a             ; initialize pilot pulse counter
-        ld      c,0xfe          ; initialize input port address
         set_searching_border
 
         ;; now we are ready to start looking for pilot pulses
@@ -125,8 +126,11 @@ loader_entry:
         ;; first, check the initial sanity byte; this may fail if
         ;; the data stream is dodgy
         call    .read_sanity_byte
-        ld      a,0xa7          ; opcode for AND A, clears carry
-        ld      (.load_error),a ; from now on, load errors cause hard failure
+        ;; from now on, load errors cause hard failures, so we dummy
+        ;; out the .load_error jump target, causing the .load_error
+        ;; code to actually be executed
+        xor     a                      ; relative jump with no displacement
+        ld      (.load_error_target),a
 
 .main_loop:
         call    .read_byte      ; take a wild guess
@@ -178,15 +182,15 @@ loader_entry:
         xor     h               ; check byte just read
         ret     z               ; return if they match
 .load_error:
-        nop                     ; room for one-byte instruction
         ld      sp,(.sp)        ; unwind stack if necessary
-        jr      c,.loader_init  ; start again if carry set
+.load_error_target:equ $+1
+        jr      $+2             ; branch back to the beginning, perhaps
         ifndef  LOADER_DIE_ON_ERROR
         ;; indicate load error by clearing both carry and zero
-        or      1
+        or      c               ; input port number, guaranteed non-zero
         jr      .exit
         else
-        rst     0
+        rst     0               ; reboot BASIC
         endif
 
         ;; spins in a loop until an edge is found.
