@@ -7,7 +7,7 @@ loader_start:
 
         ;; average iterations of sampling loop to detect a
         ;; _single_ pulse.  Determined empirically
-.pilot_pulse_avg:equ 51
+.pilot_pulse_avg:equ 52
 .zero_pulse_avg:equ 5
 .one_pulse_avg:equ 20
 
@@ -37,11 +37,10 @@ loader_start:
         ;; REGISTER ALLOCATION
         ;; 
         ;; B: .read_edge loop counter
-        ;; C: input port address
-        ;; DE:number of bytes remaining to be read
-        ;; H: during searching, the number of pilot pulses found
+        ;; C: during searching, the number of pilot pulses found
         ;;    so far.
         ;;    During data loading, the current byte being read
+        ;; DE:number of bytes remaining to be read
         ;; IX:target address of next byte to load.
 
 loader_entry:
@@ -50,14 +49,13 @@ loader_entry:
         ;; set load error jump target to return to beginning
         ld      a,.loader_init-.load_error_target-1
         ld      (.load_error_target),a
-        ld      c,0xfe          ; initialize input port address
 
         ;; and so begins the "searching" phase.  Start by
         ;; setting up the environment
 .loader_init:
         xor     a               ; clear accumulator
         ld      (.checksum),a   ; zero checksum
-        ld      h,a             ; initialize pilot pulse counter
+        ld      c,a             ; initialize pilot pulse counter
         set_searching_border
 
         ;; now we are ready to start looking for pilot pulses
@@ -72,7 +70,7 @@ loader_entry:
         ;; for the loop starting value
         cp      (2 * .pilot_pulse_min)+.timing_constant_pilot
         jr      c,.loader_init  ; too few, not a pilot pulse, so restart
-        dec     h               ; we have found a pilot pulse
+        dec     c               ; we have found a pilot pulse
         jr      nz,.detect_pilot_pulse; look for another pulse if count not hit
 
 .detect_sync:
@@ -88,14 +86,14 @@ loader_entry:
         ;; here; but we need to read them one at a time because
         ;; we don't know when we're going to hit the sync pulse
         ;;
-        ;; start by initializing H to a sane value as if we had
+        ;; start by initializing C to a sane value as if we had
         ;; just read a _single_ pilot pulse
-        ld      h,.timing_constant_pilot+.pilot_pulse_avg
+        ld      c,.timing_constant_pilot+.pilot_pulse_avg
 
 .detect_sync_loop:
         call    .read_pilot_edge;read the next single edge
         jr      z,.loader_init  ; completely restart if no edge found
-        ld      a,h             ; place previous edge counter into accumulator
+        ld      a,c             ; place previous edge counter into accumulator
         sub     .timing_constant_pilot; keep only the number of loop cycles
         add     a,b             ; add the most recent single edge counter
         ;; in the accumulator, we now have the value that we would have
@@ -104,7 +102,7 @@ loader_entry:
         ;; pulse is the first sync pulse, the next comparison will set
         ;; carry
         cp      (2 * .pilot_pulse_min)+.timing_constant_pilot
-        ld      h,b             ; store this single edge counter for next time
+        ld      c,b             ; store this single edge counter for next time
         jr      nc,.detect_sync_loop ; newest pulse was not the first sync
         endif
 
@@ -144,7 +142,7 @@ loader_entry:
 
 .store_byte:
         ld      a,0x90;xor 0xff   ; load accumulator with our decode value
-        xor     h                 ; XOR with byte just read
+        xor     c                 ; XOR with byte just read
         ;; use routine to advance pointer if supplied
         ld      (ix+0),a          ; store byte
         ifdef   loader_advance_pointer
@@ -179,7 +177,7 @@ loader_entry:
         ld      b,.timing_constant_data-1
         call    .read_byte + 2  ; read a byte from tape w/o setting timing
         ld      a,01001101b;xor 0xff     ; constant for verification
-        xor     h               ; check byte just read
+        xor     c               ; check byte just read
         ret     z               ; return if they match
 .load_error:
         ld      sp,(.sp)        ; unwind stack if necessary
@@ -187,7 +185,7 @@ loader_entry:
         jr      $+2             ; branch back to the beginning, perhaps
         ifndef  LOADER_DIE_ON_ERROR
         ;; indicate load error by clearing both carry and zero
-        or      c               ; input port number, guaranteed non-zero
+        or      1
         jr      .exit
         else
         rst     0               ; reboot BASIC
@@ -199,7 +197,7 @@ loader_entry:
         ;; minus the initial value of B, returns zero set.  On
         ;; success, returns zero clear and the loop counter in B
         ;;
-        ;; total 377T, plus 35T per additional pass around the loop
+        ;; total 376T, plus 34T per additional pass around the loop
 .read_pilot_edge:
         ld      b,.timing_constant_pilot ; (7T)
 .read_edge:
@@ -219,11 +217,11 @@ loader_entry:
         rra                       ; place BREAK/SPACE bit in carry (4T)
         jr      nc,.break_pressed ; jump forward if pressed (7T)
         ;; straight through, the sampling routine requires
-        ;; 144T, plus 35T per additional pass around the loop
+        ;; 143T, plus 34T per additional pass around the loop
 .read_edge_loop:
         inc     b                 ; increment counter (4T)
         ret     z                 ; give up if wrapped round (5T)
-        in      a,(c)             ; read port (12T)
+        in      a,(0xfe)          ; read port 0xfe (11T)
         add     a,a               ; shift EAR bit into sign bit & set flag (4T)
 .read_edge_test:
         jp      m,.read_edge_loop ; loop if no change (10T)
@@ -248,15 +246,15 @@ loader_entry:
 .break_pressed:equ .read_edge_loop; should never happen...
         endif
 
-        ;; reads eight bits, leaving the result in register H
+        ;; reads eight bits, leaving the result in register C
 .read_byte:
         ;; the first bit gets a slightly tighter timing constant
         ;; due to the T-states we've consumed in storing the
         ;; previous byte, etc.
         ld      b,.timing_constant_data + 3
-        ;; H will be shifted left one place for each bit we read.
+        ;; C will be shifted left one place for each bit we read.
         ;; When the initial 1 is in the carry, we know we're done
-        ld      h,1
+        ld      c,1
 .read_bit:
         ;; not including the sampling loop, each bit requires
         ;; 72T
@@ -268,21 +266,21 @@ loader_entry:
         ld      a,.timing_constant_threshold ;(7T)
         sub     b               ; sets carry if a 1 was detected (4T)
         ifndef  LOADER_THEME_LDBYTES
-        ld      a,h             ; copy working value into accumulator; (4T)
+        ld      a,c             ; copy working value into accumulator; (4T)
         rla                     ; rotate the new bit in from carry; if
                                 ; we've done eight bits, the original 1
                                 ; will now be in carry (4T)
-        ld      h,a             ; save new working value (4T)
+        ld      c,a             ; save new working value (4T)
         else
         ;; LDBYTES theme requires 4T more than the others, so we
         ;; can save that time here
-        rl      h               ; rotate new bit in from carry (8T)
+        rl      c               ; rotate new bit in from carry (8T)
         endif
         ld      b,.timing_constant_data - 1; set for next bit (7T)
         jr      nc,.read_bit    ; read the next bit if necessary (12/7T)
         ;; update checksum with the byte just read
 .checksum:equ $ + 1
         ld      a,0             ; place checksum into accumulator
-        xor     h               ; XOR with byte just read
+        xor     c               ; XOR with byte just read
         ld      (.checksum),a   ; save new checksum for later
         ret
