@@ -27,10 +27,8 @@
         ;; the original 47loader border: blue/black pilot, red/black data
 
         macro set_searching_border
-        ;; border instruction is NOP, leaving the lowest three bits
-        ;; of the accumulator as 1, for blue
-        ;xor     a   A already clear when this macro is entered
-        ld      (.border_instruction),a
+        inc     a               ; from 0 to 1, i.e. blue
+        ld      (.border_mask),a
         endm
 
         macro set_pilot_border
@@ -38,18 +36,16 @@
         endm
 
         macro set_data_border
-        ;; border instruction is RLA, shifting bit 0 into bit
-        ;; 1, thus the lowest three bits of the accumulator are
-        ;; 2, for red
-        ld      a,0x17
-        ld      (.border_instruction),a
+        ld      a,2             ; red
+        ld      (.border_mask),a
         endm
 
         macro border
-        dec     a               ; clear BREAK bit without affecting carry
-        rla                     ; bit 0 now set on high edge, clear on low
-.border_instruction:
-        nop                     ; placeholder for one instruction
+        ;; 19T, same as rainbow theme
+        sla     a               ; move EAR bit into carry flag (8T)
+        sbc     a,a             ; A=0xFF on high edge, 0 on low edge (4T)
+.border_mask:equ $+1
+        and     0               ; mask only the required colour bits of A (7T)
         endm
 
 .theme_set:equ 1
@@ -59,11 +55,7 @@
         ;; red/black pilot, blue/black data, Speedlock-stylee
 
         macro set_searching_border
-        ;; border instruction is RLA, shifting bit 0 into bit
-        ;; 1, thus the lowest three bits of the accumulator are
-        ;; 2, for red
-        ld      a,0x17
-        ld      (.border_instruction),a
+        ld      (.border_instruction),a ; 0, NOP
         endm
 
         macro set_pilot_border
@@ -71,17 +63,18 @@
         endm
 
         macro set_data_border
-        ;; border instruction is NOP, leaving the lowest three bits
-        ;; of the accumulator as 1, for blue
-        xor     a
+        ;; shift right, back into bit 0, i.e. blue
+        ld      a,0x1f          ; opcode for RRA
         ld      (.border_instruction),a
         endm
 
         macro border
-        dec     a               ; clear BREAK bit without affecting carry
-        rla                     ; bit 0 now set on high edge, clear on low
+        ;; 19T, same as rainbow theme
+        rlca                    ; move EAR bit into bit 0 (4T)
+        and     1               ; keep only the EAR bit (7T)
+        add     a,a             ; shift the EAR bit to make red colour (4)
 .border_instruction:
-        nop                     ; placeholder for one instruction
+        nop                     ; room for a one-byte instruction (4T)
         endm
 
 .theme_set:equ 1
@@ -107,6 +100,8 @@
         endm
 
         macro border
+        ;; 23T
+        rla                     ; move EAR bit into carry flag (4T)
         sbc     a,a             ; A=0xFF on high edge, 0 on low edge (4T)
 .colour:equ $+1
         xor     0               ; combine with colour number (7T)
@@ -119,6 +114,7 @@
 
         ifdef LOADER_THEME_JUBILEE
         ;; black/white pilot, red/white/blue data
+        ;; (deprecated: colossal waste of T-states!)
 
         ;; the pilot and data effects are completely different;
         ;; so rather than changing one or two instructions, the
@@ -126,9 +122,9 @@
         ;; routines
 
 .jubilee_pilot:
-        dec     a               ; clear BREAK bit without affecting carry
-        ret     c               ; leave all unset (black) on high edge
-        ld      a,7             ; white on low edge
+        rla                     ; move EAR bit into carry flag (4T)
+        sbc     a,a             ; A=0xFF on high edge, 0 on low edge (4T)
+        and     7               ; keep only the colour bits (7T)
         ret
 
 .jubilee_data:
@@ -143,8 +139,10 @@
 
         macro set_searching_border
         ;; install call to .jubilee_pilot
-        ld      hl,.jubilee_pilot ; okay to trample on HL during loader init
+        push    hl              ; at this point, HL is important, so save it
+        ld      hl,.jubilee_pilot
         ld      (.border_routine_addr),hl
+        pop     hl
         endm
 
         macro set_pilot_border
@@ -187,13 +185,14 @@
         ;; sets border instruction to AND C, combining the
         ;; value in the accumulator with the bits currently
         ;; being loaded
-        ld      a,0xa1                     ; AND C
+        ld      a,0xa4                     ; AND H
         ld      (.border_instruction),a
         ld      a,7                        ; mask for all colour bits
         ld      (.border_mask),a
         endm
 
         macro border
+        rla                     ; move EAR bit into carry flag (4T)
         sbc     a,a             ; A=0xFF on high edge, 0 on low edge (4T)
 .border_instruction:
         nop                     ; room for a one-byte instruction (4T)
@@ -223,9 +222,9 @@
         endm
 
         macro set_data_border
-        ;; sets border instruction to AND C, combining the
-        ;; value in the accumulator with the bits currently
-        ;; being loaded
+        ;; sets border instruction to AND E, combining the
+        ;; value in the accumulator with the low byte of the
+        ;; byte counter
         ld      a,0xa3                     ; AND E
         ld      (.border_instruction),a
         ld      a,7                        ; mask for all colour bits
@@ -233,6 +232,7 @@
         endm
 
         macro border
+        rla                     ; move EAR bit into carry flag (4T)
         sbc     a,a             ; A=0xFF on high edge, 0 on low edge (4T)
 .border_instruction:
         nop                     ; room for a one-byte instruction (4T)
