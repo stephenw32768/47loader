@@ -201,9 +201,9 @@ loader_entry:
         ;;
         ;; total 377T, plus 35T per additional pass around the loop
 .read_pilot_edge:
-        ld      b,.timing_constant_pilot
+        ld      b,.timing_constant_pilot ; (7T)
 .read_edge:
-        ;; this lot consumes 226T
+        ;; delay loop consumes 226T
         ld      a,14              ; prepare delay loop (7T)
         dec     a                 ; (4T)
         jr      nz,$-1            ; (12T when taken, 7T when not)
@@ -224,7 +224,7 @@ loader_entry:
         inc     b                 ; increment counter (4T)
         ret     z                 ; give up if wrapped round (5T)
         in      a,(c)             ; read port (12T)
-        add     a,a               ; shift EAR bit into sign bit+set flag (4T)
+        add     a,a               ; shift EAR bit into sign bit & set flag (4T)
 .read_edge_test:
         jp      m,.read_edge_loop ; loop if no change (10T)
         ;; the rainbow border theme requires 19T:
@@ -235,7 +235,7 @@ loader_entry:
         border                    ; put border colour in accumulator
         or      8                 ; set bit 3 to make sound (7T)
         out     (0xfe),a          ; switch border and make sound (11T)
-        ld      a,(.read_edge_test); place test instruction in accumulator 13T
+        ld      a,(.read_edge_test); place test instruction in accumulator, 13T
         xor     8                 ; invert test (7T)
         ld      (.read_edge_test),a; save new test for next time (13T)
 .exit_edge_loop:
