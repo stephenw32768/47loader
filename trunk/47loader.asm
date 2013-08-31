@@ -12,16 +12,17 @@ loader_start:
 .one_pulse_avg:equ 20
 
         ;; min/max iterations of sampling loop to detect a pilot pulse
-.pilot_pulse_min:equ 31
-.pilot_pulse_max:equ 60
+.pilot_pulse_min:equ .pilot_pulse_avg * 70 / 100  ; 70%
+.pilot_pulse_max:equ .pilot_pulse_avg * 120 / 100 ; 120%
         ;; min/max iterations of sampling loop to detect a 1 pulse
-.one_pulse_min:equ 12
-.one_pulse_max:equ 30
+.one_pulse_min:equ .one_pulse_avg * 60 / 100 ; 60%, very generous
+.one_pulse_max:equ .one_pulse_avg * 150 / 100; 150%, also very generous
 
         ;; the values that the .read_edge loop counter starts at
         ;; when looking for pilot and data pulses.  This ensures
         ;; that .read_edge never finds an edge that is longer
-        ;; than the maximum permitted
+        ;; than the maximum permitted.  2x because we look at both
+        ;; the low and high pulses
 .timing_constant_pilot:equ 256-(2 * .pilot_pulse_max)
 .timing_constant_data:equ 256-(2 * .one_pulse_max)
 
@@ -32,11 +33,6 @@ loader_start:
         ;; the first bit in a byte requiring fewer cycles around
         ;; the sampling loop due to overhead
 .timing_constant_threshold:equ .timing_constant_data+.zero_pulse_avg+.one_pulse_avg-5
-
-        ;; this is the minimum value returned by .read_edge
-        ;; for a pulse representing a 1.  Exported because it
-        ;; is useful for resyncing
-loader_one_pulse_min:equ .one_pulse_min+.timing_constant_data
 
         ;; REGISTER ALLOCATION
         ;; 
@@ -62,15 +58,12 @@ loader_entry:
         ld      h,a             ; initialize pilot pulse counter
         ld      c,0xfe          ; initialize input port address
         set_searching_border
-        ;; adjust .read_edge's loop counter for pilot pulses
-        ld      a,.timing_constant_pilot-1 ; -1 because of immediate inc b
-        ld      (.timing_constant),a
 
         ;; now we are ready to start looking for pilot pulses
 .detect_pilot_pulse:
-        call    .read_edge      ; read low edge
+        call    .read_pilot_edge; read low edge
 .detect_pilot_pulse_second:
-        call    .read_edge_delay; read high edge w/o reinitializing counter
+        call    .read_edge      ; read high edge w/o reinitializing counter
         jr      z,.loader_init  ; restart if no edge found
         ld      a,b             ; place loop counter into accumulator
 .detect_pilot_pulse_cp:
@@ -96,10 +89,10 @@ loader_entry:
         ;;
         ;; start by initializing H to a sane value as if we had
         ;; just read a _single_ pilot pulse
-        ld      h,.timing_constant_pilot+.pilot_pulse_min
+        ld      h,.timing_constant_pilot+.pilot_pulse_avg
 
 .detect_sync_loop:
-        call    .read_edge      ; read the next single edge
+        call    .read_pilot_edge;read the next single edge
         jr      z,.loader_init  ; completely restart if no edge found
         ld      a,h             ; place previous edge counter into accumulator
         sub     .timing_constant_pilot; keep only the number of loop cycles
@@ -116,7 +109,7 @@ loader_entry:
 
         ifndef LOADER_TWO_EDGE_SYNC
 .detect_sync_loop:
-        call    .read_edge      ; read the next single edge
+        call    .read_pilot_edge; read the next single edge
         jr      z,.loader_init  ; completely restart if no edge found
         ld      a,b             ; place loop counter into accumulator
         ;; if the new edge was shorter than a one pulse, we've found our
@@ -124,12 +117,6 @@ loader_entry:
         cp      .one_pulse_avg+.timing_constant_pilot
         jr      nc,.detect_sync_loop
         endif
-
-        ;; from now on, the only valid pulses are ones and zeros,
-        ;; so we can adjust .read_edge's loop counter/timing constant
-        ;; to enforce this
-        ld      a,.timing_constant_data-1 ; -1 because of immediate inc b
-        ld      (.timing_constant),a
 
         ;; read second sync pulse
         set_data_border
@@ -182,7 +169,11 @@ loader_entry:
         ;; reads a byte, checking it against the expected binary
         ;; value 01001101
 .read_sanity_byte:
-        call    .read_byte      ; read a byte from tape
+        ;; the flag byte gets the normal data timing constant
+        ;; because there was practically no overhead between
+        ;; reading the trailing sync edge and calling this
+        ld      b,.timing_constant_data-1
+        call    .read_byte + 2  ; read a byte from tape w/o setting timing
         ld      a,01001101b;xor 0xff     ; constant for verification
         xor     h               ; check byte just read
         ret     z               ; return if they match
@@ -205,11 +196,9 @@ loader_entry:
         ;; success, returns zero clear and the loop counter in B
         ;;
         ;; total 377T, plus 35T per additional pass around the loop
-loader_read_edge:
+.read_pilot_edge:
+        ld      b,.timing_constant_pilot
 .read_edge:
-.timing_constant:equ $ + 1
-        ld      b,0               ; initialize counter (7T)
-.read_edge_delay:
         ;; this lot consumes 226T
         ld      a,14              ; prepare delay loop (7T)
         dec     a                 ; (4T)
@@ -255,8 +244,12 @@ loader_read_edge:
 .break_pressed:equ .read_edge_loop; should never happen...
         endif
 
-        ;; reads eight bits, leaving the result in register C
+        ;; reads eight bits, leaving the result in register H
 .read_byte:
+        ;; the first bit gets a slightly tighter timing constant
+        ;; due to the T-states we've consumed in storing the
+        ;; previous byte, etc.
+        ld      b,.timing_constant_data + 3
         ;; H will be shifted left one place for each bit we read.
         ;; When the initial 1 is in the carry, we know we're done
         ld      h,1
@@ -264,11 +257,11 @@ loader_read_edge:
         ;; not including the sampling loop, each bit requires
         ;; 72T
         call    .read_edge      ; read low edge (17T)
-        call    .read_edge_delay ; read high edge w/o reinitializing counter
+        call    .read_edge      ; read high edge w/o reinitializing counter
         jr      z,.load_error   ; abort if no edge found (7T)
         ;; if B returned more cycles than this threshold, we have
         ;; a 1 pulse, else a 0
-        ld      a,.timing_constant_threshold
+        ld      a,.timing_constant_threshold ;(7T)
         sub     b               ; sets carry if a 1 was detected (4T)
         ifndef  LOADER_THEME_LDBYTES
         ld      a,h             ; copy working value into accumulator; (4T)
@@ -281,6 +274,7 @@ loader_read_edge:
         ;; can save that time here
         rl      h               ; rotate new bit in from carry (8T)
         endif
+        ld      b,.timing_constant_data - 1; set for next bit (7T)
         jr      nc,.read_bit    ; read the next bit if necessary (12/7T)
         ;; update checksum with the byte just read
 .checksum:equ $ + 1
