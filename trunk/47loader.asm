@@ -34,6 +34,46 @@ loader_start:
         ;; the sampling loop due to overhead
 .timing_constant_threshold:equ .timing_constant_data+.zero_pulse_avg+.one_pulse_avg-5
 
+        ;; when reading the first bit of a new byte, the
+        ;; timing constant is adjusted to account for the
+        ;; overhead of storing the previous byte etc.  This
+        ;; is the number of cycles around the sampling loop
+        ;; that is "added" to account for this overhead
+.new_byte_overhead:defl 3
+
+        ;; themes and integration points may impose extra overhead
+.new_byte_extra_t_states:defl 0
+
+        ;; if a theme wants to perform some setup prior to a new
+        ;; byte being read, it must be declared
+        ifdef .theme_new_byte
+        ifndef .theme_new_byte_overhead
+        .error .theme_new_byte T-state overhead must be declared as .theme_new_byte_overhead
+        endif
+.new_byte_extra_t_states:defl .new_byte_extra_t_states + .theme_new_byte_overhead
+        endif
+
+        ;; likewise, if a custom advance_pointer function has been
+        ;; specified, its overhead must be declared
+        ifdef   loader_advance_pointer
+        ifndef  LOADER_ADVANCE_POINTER_OVERHEAD
+        .error  T-states overhead required in LOADER_ADVANCE_POINTER_OVERHEAD
+        endif
+        ;; overhead is 17T for CALL, 10T for RET, plus declared overhead
+.new_byte_extra_t_states:defl .new_byte_extra_t_states + ((27 + LOADER_ADVANCE_POINTER_OVERHEAD).theme_new_byte_overhead
+        endif
+
+.new_byte_overhead:defl .new_byte_overhead + (.new_byte_extra_t_states / .read_edge_loop_t_states)
+
+        ;; when the sound bit is added to the accumulator
+        ;; immediately before OUT (0xFE), themes can add
+        ;; additional bits
+        ifdef .theme_extra_border_bits
+.border_sound:equ 8 | .theme_extra_border_bits
+        else
+.border_sound:equ 8
+        endif
+
         ;; REGISTER ALLOCATION
         ;; 
         ;; B: .read_edge loop counter
@@ -164,6 +204,9 @@ loader_entry:
 .sp:    equ     $ + 1
         ld      sp,0            ; unwind stack if necessary
         ifndef  LOADER_LEAVE_INTERRUPTS_DISABLED
+        ifdef   LOADER_RESTORE_IYL
+        ld      iyl,0x3a
+        endif
         ei
         endif
         ret
@@ -175,7 +218,7 @@ loader_entry:
         ;; because there was practically no overhead between
         ;; reading the trailing sync edge and calling this
         ld      b,.timing_constant_data-1
-        call    .read_byte + 2  ; read a byte from tape w/o setting timing
+        call    .read_bit - 2  ; read a byte from tape w/o setting timing
         ld      a,01001101b;xor 0xff     ; constant for verification
         xor     c               ; check byte just read
         ret     z               ; return if they match
@@ -218,6 +261,7 @@ loader_entry:
         jr      nc,.break_pressed ; jump forward if pressed (7T)
         ;; straight through, the sampling routine requires
         ;; 143T, plus 34T per additional pass around the loop
+.read_edge_loop_t_states:equ 34
 .read_edge_loop:
         inc     b                 ; increment counter (4T)
         ret     z                 ; give up if wrapped round (5T)
@@ -231,7 +275,7 @@ loader_entry:
         ;; and c   4T
         ;; and 7   7T
         border                    ; put border colour in accumulator
-        or      8                 ; set bit 3 to make sound (7T)
+        or      .border_sound     ; set bit 3 to make sound (7T)
         out     (0xfe),a          ; switch border and make sound (11T)
         ld      a,(.read_edge_test); place test instruction in accumulator, 13T
         xor     8                 ; invert test (7T)
@@ -251,7 +295,11 @@ loader_entry:
         ;; the first bit gets a slightly tighter timing constant
         ;; due to the T-states we've consumed in storing the
         ;; previous byte, etc.
-        ld      b,.timing_constant_data + 3
+        ld      b,.timing_constant_data + .new_byte_overhead
+        ifdef   .theme_new_byte
+        ;; theme wants to do some custom setup...
+        theme_new_byte
+        endif
         ;; C will be shifted left one place for each bit we read.
         ;; When the initial 1 is in the carry, we know we're done
         ld      c,1
@@ -265,15 +313,15 @@ loader_entry:
         ;; a 1 pulse, else a 0
         ld      a,.timing_constant_threshold ;(7T)
         sub     b               ; sets carry if a 1 was detected (4T)
-        ifndef  LOADER_THEME_LDBYTES
+        if      .theme_t_states < 23
         ld      a,c             ; copy working value into accumulator; (4T)
         rla                     ; rotate the new bit in from carry; if
                                 ; we've done eight bits, the original 1
                                 ; will now be in carry (4T)
         ld      c,a             ; save new working value (4T)
         else
-        ;; LDBYTES theme requires 4T more than the others, so we
-        ;; can save that time here
+        ;; theme requires 4T more than the "standard", so we can save that
+        ;; time here
         rl      c               ; rotate new bit in from carry (8T)
         endif
         ld      b,.timing_constant_data - 1; set for next bit (7T)
