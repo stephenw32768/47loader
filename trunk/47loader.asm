@@ -209,7 +209,13 @@ loader_entry:
         endif
         ei
         endif
+        ifndef  LOADER_DIE_ON_ERROR
         ret
+        else
+        ;; only return if carry was set, i.e. a successful load
+        ret     c
+        rst     0
+        endif
         
         ;; reads a byte, checking it against the expected binary
         ;; value 01001101
