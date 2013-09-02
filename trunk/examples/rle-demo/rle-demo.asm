@@ -17,8 +17,8 @@
         ;; the run-length decoder and compressed screen are
         ;; loaded together
 .rldecoder:equ  0xe000
-.rldecoder_len:equ 22
-.screen_len:equ 2978
+.rldecoder_len:equ 27
+.screen_len:equ 2847
         ld      ix,.rldecoder
         ld      de,.rldecoder_len + .screen_len
 

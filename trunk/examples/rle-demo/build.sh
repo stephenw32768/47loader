@@ -6,7 +6,7 @@
 prefix="rle-demo"
 
 pasmo $prefix.asm $prefix.bin
-pasmo rldecode.asm rldecode.bin
+pasmo -E RLE_SENTINEL=147 rldecode.asm rldecode.bin
 
 # embed the loader in a REM statement, formatted so that bas2tap
 # can deal with it, then append the rest of the BASIC loader
