@@ -128,41 +128,35 @@
         ;; Pilot/sync:black/white
         ;; Data:      red/white/blue
 
-        macro theme_new_byte    ; 34T, exactly one sample loop pass
-        ;; this is a roundabout way of switching the colour number
-        ;; between 1 and 2 in 34 T-states
-        ld      a,iyl           ; copy previous colour number (8T)
-        and     255             ; waste some time (7T)
-        cpl                     ; invert accumulator (4T)
-        and     3               ; keep only thw lowest two bits (7T)
-        ld      iyl,a           ; store new colour number (8T)
+        macro theme_new_byte    ; 33T
+        ld      a,(.border_instruction+1) ; place colour into accumulator (13T)
+        xor     3                         ; switch between red and blue (7T)
+        ld      (.border_instruction+1),a ; store new colour (13T)
         endm
 .theme_new_byte:equ 1
 .theme_new_byte_overhead:equ .read_edge_loop_t_states ; close enough to 1 cycle
-LOADER_RESTORE_IYL:equ 1
 
         macro set_searching_border
-        ld      a,0xa5          ; opcode for AND L/IXL/IYL
-        ld      (.border_instruction),a
-        ld      iyl,2           ; red
+        ld      hl,0x02e6       ; AND 2, i.e. black/red
+        ld      (.border_instruction),hl
         endm
         macro set_pilot_border
-        ld      iyl,7           ; white
+        ld      a,7             ; white
+        ld      (.border_instruction+1),a
         endm
         macro set_data_border
-        ld      a,0xb5          ; opcode for OR L/IXL/IYL
-        ld      (.border_instruction),a
-        ld      iyl,2           ; red
+        ld      hl,0x02f6       ; OR 2, i.e. red/white
+        ld      (.border_instruction),hl
         endm
 
 .theme_t_states:equ 23          ; high, but loader can compensate
         macro border
         rla                     ; shift EAR bit into carry (4T)
         sbc     a,a             ; A=0xFF on high edge, 0 on low edge (4T)
-        defb    0xfd            ; next instruction uses IY
 .border_instruction:
-        nop                     ; room for AND/OR IYL (8T)
-        and     7               ; keep only colour bits (7T)
+        nop                     ; room for AND/OR * (7T)
+        defb    0               ; room for colour number
+        res     4,a             ; kill EAR bit (8T)
         endm
 
         endif
