@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 
@@ -28,8 +29,8 @@ public static class FortySevenLoaderTzx
 
   private static readonly byte _sanity =
     Convert.ToByte("01001101", 2);
+  private static List<byte> _data = new List<byte>();
   private static Stream _tapefile;
-  private static byte _checksum = _sanity;
   private static readonly byte[] _blockHeader = {
     0x11,       // turbo block ID
     PilotPulse.Low, PilotPulse.High, // pilot pulse length
@@ -41,6 +42,7 @@ public static class FortySevenLoaderTzx
     0x08,       // bits in the last byte
     0, 0        // no pause after block
   };
+  /*
   private static readonly byte[] _pureDataBlockHeader = {
     0x14,       // pure data block ID
     ZeroPulse.Low,  ZeroPulse.High,  // zero bit pulse length
@@ -48,38 +50,66 @@ public static class FortySevenLoaderTzx
     0x08,       // bits in the last byte
     0, 0        // no pause after block
   };
-  
+  //*/
 
-  private static void AppendBlock(string filename,
-                                  bool includePilot,
-                                  bool includeChecksum)
+  // Computes a Fletcher-16 checksum for _data.  H and L are
+  // the starting values of the low byte (modular sum of each
+  // data byte) and high byte (modular sum of each data byte
+  // and the low byte of the checksum)
+  static void ComputeChecksum(ref byte h, ref byte l)
+  {
+      foreach (byte b in _data) {
+        byte prev = l;
+        l += b;
+        if (prev > l)
+          // overflowed; increment to simulate mod 255
+          l++;
+        prev = h;
+        h += l;
+        if (prev > h)
+          h++;
+      }
+  }
+
+  private static void AppendBlock()
   {
     // checksum includes sanity byte
     byte[] block;
 
-    // read block and calculate checksum
-    using (var str = File.OpenRead(filename)) {
-      var bytes = new List<byte>();
-      int cur;
+    // toggle bits 4 and 7 of the entire block
+    for (int i = 0; i < _data.Count; i++)
+      _data[i] ^= 0x90;
 
-      if (includePilot)
-        bytes.Add(_sanity);
-      while ((cur = str.ReadByte()) >= 0) {
-        byte curByte = (byte)(cur ^ 0x90); // toggle bits 4 and 7
-        _checksum ^= curByte;
-        bytes.Add(curByte);
-      }
-      if (includeChecksum)
-        bytes.Add(_checksum);
-      block = bytes.ToArray();
-    }
+    // calculate Fletcher16 checksum
+    byte h = 0, l = 0, start_h, start_l;
+    ComputeChecksum(ref h, ref l);
+    start_l = l = (byte)(-l - 1);
+    // rerun to determine correct starting value for H,
+    // given the just-determined starting value for L
+    h = 0;
+    ComputeChecksum(ref h, ref l);
+    start_h = h = (byte)(-h - 1);
+    // so running the checksum with those starting values
+    // should gives us 0xFFFF
+    l = start_l;
+    ComputeChecksum(ref h, ref l);
+    Debug.Assert(l == 0xff, "expected l == 255 but got " + l);
+    Debug.Assert(h == 0xff, "expected h == 255 but got " + h);
+
+    // include checksum in data block.  LSB comes first
+    _data.Insert(0, start_h);
+    _data.Insert(0, start_l);
+
+    // include sanity byte in block
+    _data.Insert(0, _sanity);
       
     // write block header
-    if (includePilot)
-      _tapefile.Write(_blockHeader, 0, _blockHeader.Length);
-    else
-      _tapefile.Write(_pureDataBlockHeader, 0, _pureDataBlockHeader.Length);
+    //if (includePilot)
+    _tapefile.Write(_blockHeader, 0, _blockHeader.Length);
+    //else
+    //   _tapefile.Write(_pureDataBlockHeader, 0, _pureDataBlockHeader.Length);
     // write block length
+    block = _data.ToArray();
     _tapefile.WriteByte((byte)(block.Length & 255));
     _tapefile.WriteByte((byte)((block.Length >> 8) & 255));
     _tapefile.WriteByte((byte)((block.Length >> 16) & 255));
@@ -96,10 +126,17 @@ public static class FortySevenLoaderTzx
     }
 
     try {
+      using (var data = new MemoryStream())
       using (_tapefile = Console.OpenStandardOutput()) {
         _tapefile.Write(Encoding.ASCII.GetBytes("ZXTape!\x1a\x01\x14"), 0, 10);
-        for (int i = 0, stop = args.Length - 1; i <= stop; i++)
-          AppendBlock(args[i], i == 0, i == stop);
+        for (int i = 0, stop = args.Length - 1; i <= stop; i++) {
+          using (var file = File.OpenRead(args[i])) {
+            file.CopyTo(data);
+          }
+        }
+
+        _data.AddRange(data.ToArray());
+        AppendBlock();
       }
     }
     catch (Exception e) {

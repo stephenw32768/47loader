@@ -1,4 +1,4 @@
-        org     0
+        org     5               ; entry point is at start of BASIC
 
         ;; 47loader (c) Stephen Williams 2013
         ;; See LICENSE for distribution terms

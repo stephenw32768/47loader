@@ -1,3 +1,3 @@
-1 clear 32767
-2 randomize usr(PEEK 23635 + 256*PEEK 23636+5)
-3 pause 0
+9000 clear val "32767"
+9001 randomize usr val"{BE}23635+256*{BE}23636"
+9002 pause sin pi
