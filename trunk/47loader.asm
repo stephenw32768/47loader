@@ -81,14 +81,16 @@ loader_start:
         ;;    so far.
         ;;    During data loading, the current byte being read
         ;; DE:number of bytes remaining to be read
+        ;; HL:during search/sync, scratch.
+        ;;    During data loading, the Fletcher-16 checksum.
         ;; IX:target address of next byte to load.
 
 loader_entry:
         di
         ld      (.sp),sp        ; save initial stack pointer
         ;; set load error jump target to return to beginning
-        ld      a,.loader_init-.load_error_target-1
-        ld      (.load_error_target),a
+        ld      hl,.loader_init
+        ld      (.load_error_target),hl
 
         ;; and so begins the "searching" phase.  Start by
         ;; setting up the environment
@@ -169,8 +171,8 @@ loader_entry:
         ;; from now on, load errors cause hard failures, so we dummy
         ;; out the .load_error jump target, causing the .load_error
         ;; code to actually be executed
-        xor     a                      ; relative jump with no displacement
-        ld      (.load_error_target),a
+        ld      hl,.load_error_target+2
+        ld      (.load_error_target),hl
 
         ifndef  LOADER_LEGACY_CHECKSUM
         ;; the next two bytes are the low and high bytes of the
@@ -255,7 +257,7 @@ loader_entry:
 .load_error:
         ld      sp,(.sp)        ; unwind stack if necessary
 .load_error_target:equ $+1
-        jr      $+2             ; branch back to the beginning, perhaps
+        jp      .loader_init    ; jump back to the beginning, perhaps
         ifndef  LOADER_DIE_ON_ERROR
         ;; indicate load error by clearing both carry and zero
         or      1
