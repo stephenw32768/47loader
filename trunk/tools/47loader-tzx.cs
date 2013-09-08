@@ -5,32 +5,44 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 // "mastering" tool for 47loader
 public static class FortySevenLoaderTzx
 {
-  // representation of a pulse length in T-states
-  private struct PulseLength
+  private const int TStatesPerMillisecond = 3500;
+
+  // 16-bit int wrapper with easy access to high/low bytes
+  private struct HighLow16
   {
-    private readonly short _l;
-    internal PulseLength(short l) { _l = l; }
+    private readonly ushort _us;
+    internal HighLow16(ushort us) { _us = us; }
 
     // high byte
-    internal byte High { get { return (byte)(_l >> 8); } }
+    internal byte High { get { return (byte)(_us >> 8); } }
     // low byte
-    internal byte Low { get { return (byte)(_l & 0xff); } }
+    internal byte Low { get { return (byte)(_us & 0xff); } }
+
+    public static implicit operator ushort(HighLow16 hl16)
+    {
+      return hl16._us;
+    }
+
+    public static implicit operator HighLow16(ushort us)
+    {
+      return new HighLow16(us);
+    }
   }
 
   // pulse lengths, notionally constant
-  private static readonly PulseLength ZeroPulse = new PulseLength(543);
-  private static readonly PulseLength OnePulse = new PulseLength(1086);
-  private static readonly PulseLength PilotPulse = new PulseLength(2168);
+  private static readonly HighLow16 ZeroPulse = new HighLow16(543);
+  private static readonly HighLow16 OnePulse = new HighLow16(1086);
+  private static readonly HighLow16 PilotPulse = new HighLow16(2168);
 
   private static readonly byte _sanity =
     Convert.ToByte("01001101", 2);
-  private static List<byte> _data = new List<byte>();
-  private static Stream _tapefile;
+  private static readonly List<byte> _data = new List<byte>();
   private static readonly byte[] _blockHeader = {
     0x11,       // turbo block ID
     PilotPulse.Low, PilotPulse.High, // pilot pulse length
@@ -52,6 +64,10 @@ public static class FortySevenLoaderTzx
   };
   //*/
 
+  // mutable bits
+  private static Stream _tapefile;
+  private static bool _reverse;
+  
   // Computes a Fletcher-16 checksum for _data.  H and L are
   // the starting values of the low byte (modular sum of each
   // data byte) and high byte (modular sum of each data byte
@@ -71,6 +87,82 @@ public static class FortySevenLoaderTzx
       }
   }
 
+  // parses string into integer
+  static T ParseInteger<T>(string s)
+  {
+    try {
+      T rv = (T)Convert.ChangeType(s, typeof(T));
+      return rv;
+    } catch {
+      Console.Error.WriteLine("Bad integer: " + s);
+      Die();
+      return default(T);
+    }
+  }
+
+  // parses options, returns array of file names
+  static string[] ParseArguments(string[] args)
+  {
+    for (int i = 0; i < args.Length; i++) {
+      if (args[i].FirstOrDefault() != '-') {
+        // we've come to the end of the options, all the rest
+        // are files
+        return args.Skip(i).ToArray();
+      }
+
+      switch (args[i].TrimStart('-')) {
+      case "reverse":
+        _reverse = true;
+        break;
+
+      case "pilot":
+        // next arg is pilot length in milliseconds
+        checked {
+          int ms = ParseInteger<int>(args[++i]);
+          int tstates = ms * TStatesPerMillisecond;
+          HighLow16 pilotPulses = (ushort)(tstates / PilotPulse);
+
+          _blockHeader[11] = pilotPulses.Low;
+          _blockHeader[12] = pilotPulses.High;
+        }
+        break;
+
+      case "pause":
+        // next arg is pause length in milliseconds
+        checked {
+          HighLow16 ms = ParseInteger<ushort>(args[++i]);
+
+          _blockHeader[14] = ms.Low;
+          _blockHeader[15] = ms.High;
+        }
+        break;
+
+      default:
+        // unknown option
+        Console.Error.WriteLine("Unknown option \"{0}\"", args[i]);
+        goto die;
+      }
+    }
+
+    // still here?  Bad option or no files...
+    die:
+    Die();
+    return null;
+  }
+
+  // prints usage and exists unsuccessfully
+  static void Die()
+  {
+    Console.Error.WriteLine(@"Usage: 47loader-tzx [options] file [file ...]
+Writes tape files to standard output
+
+Options:
+-reverse: reverse the block
+-pilot n: length of pilot in milliseconds
+-pause n: pause n milliseconds after block");
+    Environment.Exit(1);
+  }
+
   private static void AppendBlock()
   {
     // checksum includes sanity byte
@@ -79,6 +171,9 @@ public static class FortySevenLoaderTzx
     // toggle bits 4 and 7 of the entire block
     for (int i = 0; i < _data.Count; i++)
       _data[i] ^= 0x90;
+
+    if (_reverse)
+      _data.Reverse();
 
     // calculate Fletcher16 checksum
     byte h = 0, l = 0, start_h, start_l;
@@ -120,21 +215,26 @@ public static class FortySevenLoaderTzx
   public static int Main(string[] args)
   {
     if (args.Length < 1) {
-      Console.Error.WriteLine("Usage: 47loader-tzx file [file ...]");
-      Console.Error.WriteLine("Writes tape files to standard output");
+      Die();
       return 1;
     }
 
     try {
+      var files = ParseArguments(args);
+
       using (var data = new MemoryStream())
       using (_tapefile = Console.OpenStandardOutput()) {
-        _tapefile.Write(Encoding.ASCII.GetBytes("ZXTape!\x1a\x01\x14"), 0, 10);
-        for (int i = 0, stop = args.Length - 1; i <= stop; i++) {
-          using (var file = File.OpenRead(args[i])) {
+        for (int i = 0; i < files.Length; i++) {
+          if (!File.Exists(files[i])) {
+            Console.Error.WriteLine("File not found: " + files[i]);
+            Die();
+          }
+          using (var file = File.OpenRead(files[i])) {
             file.CopyTo(data);
           }
         }
 
+        _tapefile.Write(Encoding.ASCII.GetBytes("ZXTape!\x1a\x01\x14"), 0, 10);
         _data.AddRange(data.ToArray());
         AppendBlock();
       }
@@ -143,6 +243,8 @@ public static class FortySevenLoaderTzx
       Console.Error.WriteLine
         ("{0}: {1}", e.GetType().FullName, e.Message);
       Console.Error.WriteLine(e.StackTrace);
+      Console.Error.WriteLine();
+      Die();
       return 1;
     }
 

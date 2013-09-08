@@ -192,10 +192,9 @@ loader_entry:
 .store_byte:
         ld      a,0x90;xor 0xff   ; load accumulator with our decode value
         xor     c                 ; XOR with byte just read
-        ;; use routine to advance pointer if supplied
         ld      (ix+0),a          ; store byte
-        ifdef   loader_advance_pointer
-        call    loader_advance_pointer
+        ifdef   LOADER_BACKWARDS
+        dec     ix
         else
         inc     ix                ; advance pointer
         endif
