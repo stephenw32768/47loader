@@ -317,116 +317,40 @@
 
         endif
 
-        ;; the VERSA themes are inspired by Peter Knight/GoingDigital's
-        ;; Versaload.  Its border effect is a solid colour with thin
-        ;; lines.
-        ;;
-        ;; The themes use separate code for the searching/pilot and
-        ;; data borders.  Each is five bytes and must be installed
-        ;; in the set_*_border macros
-        macro   versa_install_searching_border
-        ;; we need to install the following, 20T:
-        ;sla     a   0xCB 0x27   ; shift EAR bit into carry (8T)
-        ;sbc     a,a 0x9F        ; A=0xFF on high edge, 0 on low edge (4T)
-        ;and     iyl 0xFD 0xA5   ; set colour on high edge (8T)
-        ld      hl,0x27cb
-        ld      (.border_instructions),hl
-        ld      hl,0xfd9f
-        ld      (.border_instructions+2),hl
-        ld      a,0xa5
-        ld      (.border_instructions+4),a
-        endm
-        macro   versa_install_data_border
-        ;; we need to install the following, 23T:
-        ;ld      a,iyl   FD 7D ; transfer colour from IYL into A (8T)
-        ;out     (254),a D3 FE ; briefly set border (11T)
-        ;xor     a       AF    ; clear accumulator (4T)
-        ld      hl,0x7dfd
-        ld      (.border_instructions),hl
-        ld      hl,0xfed3
-        ld      (.border_instructions+2),hl
-        ld      a,0xaf
-        ld      (.border_instructions+4),a
-        endm
-        macro   versa_border
-.theme_t_states:equ 23 ; though 20 on pilot
-        macro   border
-.border_instructions:
-        ds      5      ; space for five bytes of code
-        endm
-        endm
+        ifdef LOADER_THEME_SPAIN
+        ;; Searching: red/white
+        ;; Pilot/sync:yellow/white
+        ;; Data:      red/yellow
 
-        ifdef LOADER_THEME_VERSA
-        ;; Searching: blue/cyan
-        ;; Pilot/sync:blue/white
-        ;; Data:      solid blue with fine cyan/white
-
-        macro theme_new_byte
-        ;; this switches IYL between cyan and white using the
-        ;; byte counter as a seed.  It's a silly dance, but it
-        ;; consumes 34T, precisely the same as one pass around
-        ;; the sample loop
-        ld      a,e                ; fetch low byte of byte counter (4T)
-        sla     a                  ; shift it left so LSb is in bit 1 (8T)
-        or      13                 ; set bits 0, 2 and 4 (7T)
-        and     15                 ; keep only the colour and sound bits (7T)
-        ld      iyl,a              ; save in IYL (8T)
-        endm
-.theme_new_byte:equ 1
-.theme_new_byte_overhead:equ 34
-LOADER_RESTORE_IYL:equ 1
-        ;; no matter what, we always want the blue bit set
+        ;; no matter what, we always want the red bit set
         ;; on the border; so rather than adding an extra
         ;; instruction to do it, we can have the loader do
         ;; it at the same time as setting the sound bit
-.theme_extra_border_bits:equ 1
+.theme_extra_border_bits:equ 2
 
         macro set_searching_border
-        versa_install_searching_border
-        ld      iyl,5             ; blue/cyan during search
+        ld      hl,0x00f6                ; OR 0, i.e. a 7T no-op
+        ld      (.border_instruction),hl
         endm
+
         macro set_pilot_border
-        ld      iyl,7             ; blue/white during sync
+        ld      a,4                      ; border instr becomes OR 4,
+        ld      (.border_instruction+1),a; setting the green bit for yellow
         endm
+
         macro set_data_border
-        versa_install_data_border
+        ld      a,0xe6                   ; border inst becomes AND 4
+        ld      (.border_instruction),a
         endm
 
-        versa_border
-
-        endif
-
-        ifdef LOADER_THEME_RAINBOW_VERSA
-        ;; Searching: black/red
-        ;; Pilot/sync:black/green
-        ;; Data:      solid black with fine rainbow lines
-
-        macro theme_new_byte
-        ;; this loads IYL with colour bits taken from the byte
-        ;; counter.  It consumes 34T, precisely the same as one
-        ;; pass around the sample loop
-        and     iyl                ; waste 8T
-        ld      a,e                ; fetch low byte of byte counter (4T)
-        and     7                  ; isolate colour bits (7T)
-        or      8                  ; add sound bit (7T)
-        ld      iyl,a              ; save in IYL (8T)
+.theme_t_states:equ 23          ; high, but loader can compensate
+        macro border
+        rla                     ; move EAR bit into bit 0 (4T)
+        sbc     a,a             ; A=0xFF on high edge, 0 on low edge (4T)
+        res     4,a             ; kill EAR bit (8T)
+.border_instruction:
+        and     0               ; combine with colour number (7T)
         endm
-.theme_new_byte:equ 1
-.theme_new_byte_overhead:equ 34
-LOADER_RESTORE_IYL:equ 1
-
-        macro set_searching_border
-        versa_install_searching_border
-        ld      iyl,2             ; black/red during search
-        endm
-        macro set_pilot_border
-        ld      iyl,4             ; black/green during sync
-        endm
-        macro set_data_border
-        versa_install_data_border
-        endm
-
-        versa_border
 
         endif
 
@@ -461,6 +385,143 @@ LOADER_RESTORE_IYL:equ 1
         sbc     a,a             ; A=0xFF on high edge, 0 on low edge (4T)
 .border_colour:equ $ + 1
         and     0               ; set colour on high edge (7T)
+        endm
+
+        endif
+
+        ifdef LOADER_THEME_VERSA
+        ;; Searching: solid cyan with fine blue lines
+        ;; Pilot/sync:solid white with fine blue lines
+        ;; Data:      solid blue with fine cyan/white lines
+
+        macro theme_new_byte
+        ;; this switches the line colour between cyan and white
+        ;; using the byte counter as a seed.  It's a silly dance,
+        ;; but it consumes 33T, nearly the same as one pass around
+        ;; the sample loop
+        ld      a,e                ; fetch low byte of byte counter (4T)
+        sla     a                  ; shift it left so LSb is in bit 1 (8T)
+        or      13                 ; set bits 0, 2 and 4 (7T)
+        and     15                 ; keep only the colour and sound bits (7T)
+        ld      (.line_colour),a   ; save it (13T)
+        endm
+.theme_new_byte:equ 1
+.theme_new_byte_overhead:equ 34 ; close enough to one pass around sample loop
+
+        macro set_searching_border
+        ld      a,9                  ; blue lines (with sound bit)
+        ld      (.line_colour),a
+        ld      a,5
+        ld      (.background_colour),a ; on cyan background
+        endm
+        macro set_pilot_border
+        ld      a,7
+        ld      (.background_colour),a ; white background
+        endm
+        macro set_data_border
+        ld      a,1
+        ld      (.background_colour),a ; blue background
+        endm
+
+.theme_t_states:equ 25
+        macro   border
+.line_colour:equ $ + 1
+        ld      a,0             ; load accumulator with line colour (7T)
+        out     (254),a         ; set border briefly (11T)
+.background_colour:equ $ + 1
+        ld      a,0             ; load accumulator with background colour (7T)
+        endm
+
+        endif
+
+        ifdef LOADER_THEME_RAINBOW_VERSA
+        ;; Searching: solid red with fine black lines
+        ;; Pilot/sync:solid green with fine black lines
+        ;; Data:      solid black with fine rainbow lines
+
+        macro theme_new_byte
+        ;; this sets .line_colour to a value derived from the byte
+        ;; counter.  It consumes 32T, close enough to one pass
+        ;; around the sample loop
+        ld      a,e                ; fetch low byte of byte counter (4T)
+        and     7                  ; isolate colour bits (7T)
+        set     4,a                ; add sound bit (8T)
+        ld      (.line_colour),a   ; save (13T)
+        endm
+.theme_new_byte:equ 1
+.theme_new_byte_overhead:equ 34 ; close enough
+
+        macro set_searching_border
+        ld      a,8                  ; black lines (with sound bit)
+        ld      (.line_colour),a
+        ld      a,2
+        ld      (.background_colour),a ; on red background
+        endm
+        macro set_pilot_border
+        ld      a,4
+        ld      (.background_colour),a ; green background
+        endm
+        macro set_data_border
+        xor     a                      ; zero accumulator
+        ld      (.background_colour),a ; black background
+        endm
+
+.theme_t_states:equ 25
+        macro   border
+.line_colour:equ $ + 1
+        ld      a,0             ; load accumulator with line colour (7T)
+        out     (254),a         ; set border briefly (11T)
+.background_colour:equ $ + 1
+        ld      a,0             ; load accumulator with background colour (7T)
+        endm
+
+        endif
+
+        ifdef LOADER_THEME_CYCLE_VERSA
+        ;; Searching: solid black with fine red lines
+        ;; Pilot/sync:solid black with fine green lines
+        ;; Data:      solid colour with fine black or white lines
+
+        macro theme_new_byte
+        ;; this sets .background_colour to a value derived from the
+        ;; byte counter, and .line_colour to complementary black or
+        ;; white.  It consumes 69T, a fraction over two passes
+        ;; around the sampling loop
+        ld      a,d                ; fetch high byte of byte counter (4T)
+        and     7                  ; isolate colour bits (7T)
+        ld      (.background_colour),a; save (13T)
+        cp      4                  ; set carry if 3 (magenta) or below (7T)
+        sbc     a,a                ; accumulator now 0xFF if blk/blu/red/mgt,4T
+        and     7                  ; isolate colour bits (7T)
+        or      8                  ; add sound bit (7T)
+        ld      (.line_colour),a   ; save as line colour (13T)
+        ld      a,(hl)             ; waste 7T to round up to 69T
+        endm
+.theme_new_byte:equ 1
+.theme_new_byte_overhead:equ 69
+
+        macro set_searching_border
+        ;; accumulator is already empty when this is called
+        ld      a,10                   ; red lines (with sound bit)
+        ld      (.line_colour),a
+        xor     a
+        ld      (.background_colour),a ; on red background
+        endm
+        macro set_pilot_border
+        ld      a,12
+        ld      (.line_colour),a       ; green lines
+        endm
+        macro set_data_border
+        ;; nothing, .theme_new_byte does it all
+        endm
+
+.theme_t_states:equ 25
+        macro   border
+.line_colour:equ $ + 1
+        ld      a,0             ; load accumulator with line colour (7T)
+        out     (254),a         ; set border briefly (11T)
+.background_colour:equ $ + 1
+        ld      a,0             ; load accumulator with background colour (7T)
         endm
 
         endif
