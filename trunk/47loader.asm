@@ -53,16 +53,6 @@ loader_start:
 .new_byte_extra_t_states:defl .new_byte_extra_t_states + .theme_new_byte_overhead
         endif
 
-        ;; likewise, if a custom advance_pointer function has been
-        ;; specified, its overhead must be declared
-        ifdef   loader_advance_pointer
-        ifndef  LOADER_ADVANCE_POINTER_OVERHEAD
-        .error  T-states overhead required in LOADER_ADVANCE_POINTER_OVERHEAD
-        endif
-        ;; overhead is 17T for CALL, 10T for RET, plus declared overhead
-.new_byte_extra_t_states:defl .new_byte_extra_t_states + ((27 + LOADER_ADVANCE_POINTER_OVERHEAD).theme_new_byte_overhead
-        endif
-
 .new_byte_overhead:defl .new_byte_overhead + (.new_byte_extra_t_states / .read_edge_loop_t_states)
 
         ;; when the sound bit is added to the accumulator
@@ -89,9 +79,9 @@ loader_entry:
         di
         ld      (.sp),sp        ; save initial stack pointer
         ;; set load error jump target to return to beginning
-        ld      hl,.loader_init
-        ld      (.load_error_target),hl
 
+        ld      a,.loader_init-.load_error_target-1
+        ld      (.load_error_target),a
         ;; and so begins the "searching" phase.  Start by
         ;; setting up the environment
 .loader_init:
@@ -171,8 +161,8 @@ loader_entry:
         ;; from now on, load errors cause hard failures, so we dummy
         ;; out the .load_error jump target, causing the .load_error
         ;; code to actually be executed
-        ld      hl,.load_error_target+2
-        ld      (.load_error_target),hl
+        xor     a               ; relative jump with no displacement
+        ld      (.load_error_target),a
 
         ifndef  LOADER_LEGACY_CHECKSUM
         ;; the next two bytes are the low and high bytes of the
@@ -257,7 +247,7 @@ loader_entry:
 .load_error:
         ld      sp,(.sp)        ; unwind stack if necessary
 .load_error_target:equ $+1
-        jp      .loader_init    ; jump back to the beginning, perhaps
+        jr      .loader_init    ; jump back to the beginning, perhaps
         ifndef  LOADER_DIE_ON_ERROR
         ;; indicate load error by clearing both carry and zero
         or      1
