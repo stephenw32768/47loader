@@ -376,6 +376,47 @@
 
         endif
 
+        ifdef LOADER_THEME_ITALY
+        ;; Searching: black/red
+        ;; Pilot/sync:black/green; black/white with ROM timings
+        ;; Data:      red/white/green
+
+        macro theme_new_byte    ; 33T
+        ld      a,(.border_instruction+1) ; place colour into accumulator (13T)
+        xor     6                         ; switch between red and green (7T)
+        ld      (.border_instruction+1),a ; store new colour (13T)
+        endm
+.theme_new_byte:equ 1
+.theme_new_byte_overhead:equ .read_edge_loop_t_states ; close enough to 1 cycle
+
+        macro set_searching_border
+        ld      hl,0x02e6       ; AND 2, i.e. black/red
+        ld      (.border_instruction),hl
+        endm
+        macro set_pilot_border
+        ld      a,4                   ; green
+        jr      c,.pilot_border_fast  ; jump forward if fast timings in use
+        ld      a,7                   ; white
+.pilot_border_fast:
+        ld      (.border_instruction+1),a
+        endm
+        macro set_data_border
+        ld      hl,0x02f6       ; OR 2, i.e. red/white
+        ld      (.border_instruction),hl
+        endm
+
+.theme_t_states:equ 23          ; high, but loader can compensate
+        macro border
+        rla                     ; shift EAR bit into carry (4T)
+        sbc     a,a             ; A=0xFF on high edge, 0 on low edge (4T)
+.border_instruction:
+        nop                     ; room for AND/OR * (7T)
+        defb    0               ; room for colour number
+        res     4,a             ; kill EAR bit (8T)
+        endm
+
+        endif
+
         ifdef LOADER_THEME_CANDY
         ;; Searching: black/magenta
         ;; Pilot/sync:black/yellow; black/white with ROM timings
