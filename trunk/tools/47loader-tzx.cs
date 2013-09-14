@@ -13,32 +13,13 @@ public static class FortySevenLoaderTzx
 {
   private const int TStatesPerMillisecond = 3500;
 
-  // 16-bit int wrapper with easy access to high/low bytes
-  private struct HighLow16
-  {
-    private readonly ushort _us;
-    internal HighLow16(ushort us) { _us = us; }
-
-    // high byte
-    internal byte High { get { return (byte)(_us >> 8); } }
-    // low byte
-    internal byte Low { get { return (byte)(_us & 0xff); } }
-
-    public static implicit operator ushort(HighLow16 hl16)
-    {
-      return hl16._us;
-    }
-
-    public static implicit operator HighLow16(ushort us)
-    {
-      return new HighLow16(us);
-    }
-  }
-
   // pulse lengths, notionally constant
   private static readonly HighLow16 ZeroPulse = new HighLow16(543);
   private static readonly HighLow16 OnePulse = new HighLow16(1086);
-  private static readonly HighLow16 PilotPulse = new HighLow16(2168);
+  private static readonly HighLow16 PilotPulse = new HighLow16(1710);
+
+  private static readonly HighLow16 PilotPulseCount =
+    (ushort)(1000 * TStatesPerMillisecond / PilotPulse);
 
   private static readonly byte _sanity =
     Convert.ToByte("01001101", 2);
@@ -50,9 +31,9 @@ public static class FortySevenLoaderTzx
     OnePulse.Low, OnePulse.High,     // second sync pulse length
     ZeroPulse.Low,  ZeroPulse.High,  // zero bit pulse length
     OnePulse.Low, OnePulse.High,     // one bit pulse length
-    0xd0, 0x07, // pulses in pilot tone, 2000, 0x7d0
+    PilotPulseCount.Low, PilotPulseCount.High, // pulses in pilot tone
     0x08,       // bits in the last byte
-    0, 0        // no pause after block
+    250, 0      // 250ms pause after block
   };
   /*
   private static readonly byte[] _pureDataBlockHeader = {

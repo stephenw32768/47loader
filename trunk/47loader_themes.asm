@@ -3,16 +3,18 @@
 
         ;; Border themes for 47loader
 
-        ;; Each theme defines three macros:
-        ;; border, set_pilot_border, set_data_border
+        ;; Each theme defines four macros:
+        ;; border, set_searching_border, set_pilot_border,
+        ;; set_data_border
         ;;
         ;; border does the actual work of placing the border
         ;; colour into the accumulator.  On entry, carry is
         ;; set on high edges and clear on low edges
         ;;
-        ;; set_pilot_border and set_data_border make any
-        ;; adjustments to the code to set things up for the
-        ;; pilot or data borders
+        ;; set_*_border make any adjustments to the code to set things
+        ;; up for the searching, syncinc/pilot or data borders.  On
+        ;; entry to set_searching_border, carry is set if fast timings
+        ;; are in use and clear if ROM timings are in use
         ;;
         ;; Define one of:
         ;; LOADER_THEME_ORIGINAL
@@ -21,6 +23,13 @@
         ;; LOADER_THEME_JUBILEE
         ;; LOADER_THEME_RAINBOW
         ;; LOADER_THEME_RAINBOW_RIPPLE
+        ;; LOADER_THEME_FIRE
+        ;; LOADER_THEME_ICE
+        ;; LOADER_THEME_SPAIN
+        ;; LOADER_THEME_CANDY
+        ;; LOADER_THEME_VERSA
+        ;; LOADER_THEME_RAINBOW_VERSA
+        ;; LOADER_THEME_CYCLE_VERSA
         ;; 
         ;; LOADER_THEME_RAINBOW is the "standard".  Its border
         ;; implementation requires 19 T-states.  Other themes
@@ -125,7 +134,7 @@
 
         ifdef LOADER_THEME_JUBILEE
         ;; Searching: black/red
-        ;; Pilot/sync:black/white
+        ;; Pilot/sync:black/blue; black/white with ROM timings
         ;; Data:      red/white/blue
 
         macro theme_new_byte    ; 33T
@@ -141,7 +150,10 @@
         ld      (.border_instruction),hl
         endm
         macro set_pilot_border
-        ld      a,7             ; white
+        ld      a,1                   ; blue
+        jr      c,.pilot_border_fast  ; jump forward if fast timings in use
+        ld      a,7                   ; white
+.pilot_border_fast:
         ld      (.border_instruction+1),a
         endm
         macro set_data_border
@@ -163,7 +175,7 @@
 
         ifdef LOADER_THEME_RAINBOW
         ;; Searching: black/red
-        ;; Pilot/sync:black/green
+        ;; Pilot/sync:black/green; black/white with ROM timings
         ;; Data:      black/rainbow derived from bits being loaded
 
         macro set_searching_border
@@ -176,6 +188,9 @@
 
         macro set_pilot_border
         ld      a,4                     ; mask for green
+        jr      c,.pilot_border_fast    ; jump forward if fast timings in use
+        ld      a,7                     ; mask for white
+.pilot_border_fast:
         ld      (.border_mask),a
         endm
 
@@ -203,7 +218,7 @@
 
         ifdef LOADER_THEME_RAINBOW_RIPPLE
         ;; Searching: black/red
-        ;; Pilot/sync:black/green
+        ;; Pilot/sync:black/green; black/white with ROM timings
         ;; Data:      black/rainbow derived from byte counter
 
         macro set_searching_border
@@ -216,6 +231,9 @@
 
         macro set_pilot_border
         ld      a,4                     ; mask for green
+        jr      c,.pilot_border_fast    ; jump forward if fast timings in use
+        ld      a,7                     ; mask for white
+.pilot_border_fast:
         ld      (.border_mask),a
         endm
 
@@ -244,7 +262,7 @@
 
         ifdef LOADER_THEME_FIRE
         ;; Searching: black/red
-        ;; Pilot/sync:black/yellow
+        ;; Pilot/sync:black/yellow; black/white with ROM timings
         ;; Data:      black/red/yellow
 
         macro theme_new_byte    ; 33T, one T-state less than sample loop cycle
@@ -260,7 +278,10 @@
         ld      (.border_colour),a
         endm
         macro set_pilot_border
-        ld      a,6           ; yellow
+        ld      a,6                  ; yellow
+        jr      c,.pilot_border_fast ; jump forward if fast timings in use
+        ld      a,7                  ; white
+.pilot_border_fast:
         ld      (.border_colour),a
         endm
         macro set_data_border
@@ -301,6 +322,7 @@
         endm
         macro set_pilot_border
         ld      a,7             ; white
+.pilot_border_fast:
         ld      (.border_colour),a
         endm
         macro set_data_border
@@ -356,7 +378,7 @@
 
         ifdef LOADER_THEME_CANDY
         ;; Searching: black/magenta
-        ;; Pilot/sync:black/yellow
+        ;; Pilot/sync:black/yellow; black/white with ROM timings
         ;; Data:      black/magenta/yellow
 
         macro theme_new_byte    ; 33T, one T-state less than sample loop cycle
@@ -372,7 +394,10 @@
         ld      (.border_colour),a
         endm
         macro set_pilot_border
-        ld      a,6           ; yellow
+        ld      a,6                  ; yellow
+        jr      c,.pilot_border_fast ; jump forward if fast timings in use
+        ld      a,7                  ; white
+.pilot_border_fast:
         ld      (.border_colour),a
         endm
         macro set_data_border
@@ -436,7 +461,7 @@
 
         ifdef LOADER_THEME_RAINBOW_VERSA
         ;; Searching: solid red with fine black lines
-        ;; Pilot/sync:solid green with fine black lines
+        ;; Pilot/sync:solid green (ROM timings: white) with fine black lines
         ;; Data:      solid black with fine rainbow lines
 
         macro theme_new_byte
@@ -445,7 +470,7 @@
         ;; around the sample loop
         ld      a,e                ; fetch low byte of byte counter (4T)
         and     7                  ; isolate colour bits (7T)
-        set     4,a                ; add sound bit (8T)
+        set     3,a                ; add sound bit (8T)
         ld      (.line_colour),a   ; save (13T)
         endm
 .theme_new_byte:equ 1
@@ -458,8 +483,11 @@
         ld      (.background_colour),a ; on red background
         endm
         macro set_pilot_border
-        ld      a,4
-        ld      (.background_colour),a ; green background
+        ld      a,4                     ; mask for green
+        jr      c,.pilot_border_fast    ; jump forward if fast timings in use
+        ld      a,7                     ; mask for white
+.pilot_border_fast:
+        ld      (.background_colour),a ; green or white background
         endm
         macro set_data_border
         xor     a                      ; zero accumulator
@@ -479,7 +507,7 @@
 
         ifdef LOADER_THEME_CYCLE_VERSA
         ;; Searching: solid black with fine red lines
-        ;; Pilot/sync:solid black with fine green lines
+        ;; Pilot/sync:solid black with fine green lines (white for ROM timings)
         ;; Data:      solid colour with fine black or white lines
 
         macro theme_new_byte
@@ -508,8 +536,11 @@
         ld      (.background_colour),a ; on red background
         endm
         macro set_pilot_border
-        ld      a,12
-        ld      (.line_colour),a       ; green lines
+        ld      a,12                   ; green lines (with sound bit)
+        jr      c,.pilot_border_fast   ; jump forward if fast timings in use
+        or      7                      ; white lines
+.pilot_border_fast:
+        ld      (.line_colour),a
         endm
         macro set_data_border
         ;; nothing, .theme_new_byte does it all

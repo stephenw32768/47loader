@@ -1,10 +1,16 @@
-        org     5               ; entry point is at start of BASIC
-
         ;; 47loader (c) Stephen Williams 2013
         ;; See LICENSE for distribution terms
 
+        org     0
+
+        ;; to BASIC, the jump forward looks like line 6147
+        jr      .start          ; jump past REM statement
+        dw      .end - 4        ; length of BASIC line
+        db      0xea            ; BASIC REM keyword
+
         .dest:  equ     0xfb00
 
+.start:
         ld      de,.dest
         push    bc
         pop     hl              ; entry address now in HL
@@ -38,8 +44,8 @@
 .reloc_start:   equ     $
         .phase  .dest
 
-;LOADER_TWO_EDGE_SYNC:   equ 1
 ;LOADER_THEME_CANDY:equ 1
+;LOADER_THEME_CYCLE_VERSA:equ 1
 ;LOADER_THEME_FIRE:equ 1
 ;LOADER_THEME_ICE:equ 1
 ;LOADER_THEME_LDBYTES:equ 1
@@ -48,7 +54,13 @@
 LOADER_THEME_RAINBOW:equ 1
 ;LOADER_THEME_RAINBOW_RIPPLE:equ 1
 ;LOADER_THEME_RAINBOW_VERSA:equ 1
+;LOADER_THEME_SPAIN:     equ 1
 ;LOADER_THEME_SPEEDLOCK:equ 1
 ;LOADER_THEME_VERSA:equ 1
+;LOADER_EXTRA_CYCLES:equ -2
         include "47loader.asm"
 .reloc_len: equ $ - .dest
+
+        .dephase
+        db      13              ; BASIC line terminator
+.end:   equ     $
