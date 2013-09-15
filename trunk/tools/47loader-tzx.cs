@@ -2,6 +2,7 @@
 // See LICENSE for distribution terms
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -11,6 +12,36 @@ using System.Text;
 // "mastering" tool for 47loader
 public static class FortySevenLoaderTzx
 {
+  // TZX turbo block header
+  private sealed class BlockHeader : IEnumerable<byte>
+  {
+    internal HighLow16
+      SyncPulse0, SyncPulse1, PilotPulse, ZeroPulse, OnePulse,
+      PilotPulseCount, Pause;
+
+    // converts the header into a sequence of bytes for writing
+    // to a stream
+    public IEnumerator<byte> GetEnumerator()
+    {
+      yield return 0x11; // turbo block ID
+      foreach (var field in new[] {
+          PilotPulse, SyncPulse0, SyncPulse1, ZeroPulse, OnePulse,
+          PilotPulseCount
+        }) {
+        yield return field.Low;
+        yield return field.High;
+      }
+      yield return 8; // last byte has all eight bits
+      yield return Pause.Low;
+      yield return Pause.High;
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+      return GetEnumerator();
+    }
+  }
+
   private const int TStatesPerMillisecond = 3500;
 
   // pulse lengths, notionally constant
@@ -22,18 +53,17 @@ public static class FortySevenLoaderTzx
     (ushort)(1000 * TStatesPerMillisecond / PilotPulse);
 
   private static readonly byte _sanity =
-    Convert.ToByte("01001101", 2);
+    Convert.ToByte("10110010", 2);
   private static readonly List<byte> _data = new List<byte>();
-  private static readonly byte[] _blockHeader = {
-    0x11,       // turbo block ID
-    PilotPulse.Low, PilotPulse.High, // pilot pulse length
-    ZeroPulse.Low,  ZeroPulse.High,  // first sync pulse length
-    OnePulse.Low, OnePulse.High,     // second sync pulse length
-    ZeroPulse.Low,  ZeroPulse.High,  // zero bit pulse length
-    OnePulse.Low, OnePulse.High,     // one bit pulse length
-    PilotPulseCount.Low, PilotPulseCount.High, // pulses in pilot tone
-    0x08,       // bits in the last byte
-    250, 0      // 250ms pause after block
+
+  private static readonly BlockHeader _blockHeader = new BlockHeader {
+    PilotPulse = FortySevenLoaderTzx.PilotPulse,
+    PilotPulseCount = FortySevenLoaderTzx.PilotPulseCount,
+    SyncPulse0 = FortySevenLoaderTzx.ZeroPulse,
+    SyncPulse1 = FortySevenLoaderTzx.OnePulse,
+    ZeroPulse = FortySevenLoaderTzx.ZeroPulse,
+    OnePulse = FortySevenLoaderTzx.OnePulse,
+    Pause = new HighLow16(250)   
   };
   /*
   private static readonly byte[] _pureDataBlockHeader = {
@@ -102,9 +132,7 @@ public static class FortySevenLoaderTzx
           int ms = ParseInteger<int>(args[++i]);
           int tstates = ms * TStatesPerMillisecond;
           HighLow16 pilotPulses = (ushort)(tstates / PilotPulse);
-
-          _blockHeader[11] = pilotPulses.Low;
-          _blockHeader[12] = pilotPulses.High;
+          _blockHeader.PilotPulseCount = pilotPulses;
         }
         break;
 
@@ -112,9 +140,19 @@ public static class FortySevenLoaderTzx
         // next arg is pause length in milliseconds
         checked {
           HighLow16 ms = ParseInteger<ushort>(args[++i]);
+          _blockHeader.Pause = ms;
+        }
+        break;
 
-          _blockHeader[14] = ms.Low;
-          _blockHeader[15] = ms.High;
+      case "extracycles":
+        checked {
+          sbyte cycles = ParseInteger<sbyte>(args[++i]);
+          var tdelta0 = 34 * cycles;
+          var tdelta1 = 2 * tdelta0;
+          HighLow16 new0 = (ushort)(ZeroPulse + tdelta0);
+          HighLow16 new1 = (ushort)(OnePulse + tdelta1);
+          _blockHeader.SyncPulse0 = _blockHeader.ZeroPulse = new0;
+          _blockHeader.SyncPulse1 = _blockHeader.OnePulse = new1;
         }
         break;
 
@@ -140,7 +178,8 @@ Writes tape files to standard output
 Options:
 -reverse: reverse the block
 -pilot n: length of pilot in milliseconds
--pause n: pause n milliseconds after block");
+-pause n: pause n milliseconds after block
+-extracycles n: additional 34T cycles to add to timings");
     Environment.Exit(1);
   }
 
@@ -181,7 +220,8 @@ Options:
       
     // write block header
     //if (includePilot)
-    _tapefile.Write(_blockHeader, 0, _blockHeader.Length);
+    var blockHeader = _blockHeader.ToArray();
+    _tapefile.Write(blockHeader, 0, blockHeader.Length);
     //else
     //   _tapefile.Write(_pureDataBlockHeader, 0, _pureDataBlockHeader.Length);
     // write block length

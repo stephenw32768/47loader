@@ -175,7 +175,7 @@ loader_entry:
         ;; value 01001101
 .read_sanity_byte:
         call    .read_byte
-        ld      a,01001101b;xor 0xff     ; constant for verification
+        ld      a,10110010b;xor 0xff     ; constant for verification
         xor     c               ; check byte just read
         ret     z               ; return if they match
 .load_error:
