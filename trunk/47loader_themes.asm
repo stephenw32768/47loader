@@ -285,7 +285,8 @@
         ld      (.border_colour),a
         endm
         macro set_data_border
-        ;; nothing, theme_new_byte does it
+        ld      a,2           ; red; need to reinit in case it was white
+        ld      (.border_colour),a
         endm
 
 .theme_t_states:equ 19          ; "standard" theme overhead
@@ -442,7 +443,8 @@
         ld      (.border_colour),a
         endm
         macro set_data_border
-        ;; nothing, theme_new_byte does it
+        ld      a,3           ; magenta; need to reinit in case it was white
+        ld      (.border_colour),a
         endm
 
 .theme_t_states:equ 19          ; "standard" theme overhead
