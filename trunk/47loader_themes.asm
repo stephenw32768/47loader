@@ -16,6 +16,11 @@
         ;; entry to set_searching_border, carry is set if fast timings
         ;; are in use and clear if ROM timings are in use
         ;;
+        ;; Themes can define a subroutine, .theme_delay, that replaces the
+        ;; usual 226T delay loop at the beginning of each .read_edge.  The
+        ;; subroutine must execute within a hair's breadth of 226T,
+        ;; including the CALL and RET.
+        ;;
         ;; Define one of:
         ;; LOADER_THEME_ORIGINAL
         ;; LOADER_THEME_SPEEDLOCK
@@ -24,6 +29,7 @@
         ;; LOADER_THEME_RAINBOW
         ;; LOADER_THEME_RAINBOW_RIPPLE
         ;; LOADER_THEME_FIRE
+        ;; LOADER_THEME_FIRE_RIPPLE
         ;; LOADER_THEME_ICE
         ;; LOADER_THEME_SPAIN
         ;; LOADER_THEME_CANDY
@@ -264,6 +270,66 @@
         ;; Searching: black/red
         ;; Pilot/sync:black/yellow; black/white with ROM timings
         ;; Data:      black/red/yellow
+        ;;
+        ;; Data border colour changes per byte.
+
+.theme_delay:
+        ;; the initial CALL cost 17T, so we have 209T remaining
+        ld      (.saved_hl),hl      ; save checksum (16T)
+        ld      hl,.border_colour   ; prime HL with address to modify (10T)
+        ld      a,(.read_edge_test) ; copy test instruction into A (13T)
+        cp      0xf3                ; set carry if it is 0xF2 (7T)
+        sbc     a,a                 ; A is now 0 or 0xFF depending on test (4T)
+.border_toggle_mask:equ $ + 1
+        and     4                   ; isolate green colour bit (7T)
+        xor     (hl)                ; toggle border between red and yellow 7T
+        ld      (hl),a              ; store new colour (7T)
+.saved_hl:equ $ + 1
+        ld      hl,0                ; restore checksum (10T)
+        ;; that lot was 81T, so we have 128T remaining
+        ld      a,7                 ; prime delay loop (7T, 121T remaining)
+        dec     a                   ; (4T) (28T total) (93T remaining)
+        jr      nz,$ - 1            ; (12T per loop, then 7T) (79T total) (14T)
+        ;; 14T remaining...
+        and     a                   ; waste 4T (10T remaining)
+        ret                         ; (10T) (226T total)
+
+        macro set_searching_border
+        ;; accumulator is zero when this macro is entered
+        ld      (.border_toggle_mask),a ; no colour switch on alt edges
+        ld      a,2           ; red
+        ld      (.border_colour),a
+        endm
+        macro set_pilot_border
+        ld      a,6                  ; yellow
+        jr      c,.pilot_border_fast ; jump forward if fast timings in use
+        ld      a,7                  ; white
+.pilot_border_fast:
+        ld      (.border_colour),a
+        endm
+        macro set_data_border
+        ld      a,2           ; red; need to reinit in case it was white
+        ld      (.border_colour),a
+        ld      a,4           ; switch red/yellow on alternate edges
+        ld      (.border_toggle_mask),a
+        endm
+
+.theme_t_states:equ 19          ; "standard" theme overhead
+        macro border
+        sla     a               ; shift EAR bit into carry (8T)
+        sbc     a,a             ; A=0xFF on high edge, 0 on low edge (4T)
+.border_colour:equ $ + 1
+        and     0               ; set colour on high edge (7T)
+        endm
+
+        endif
+
+        ifdef LOADER_THEME_FIRE_RIPPLE
+        ;; Searching: black/red
+        ;; Pilot/sync:black/yellow; black/white with ROM timings
+        ;; Data:      black/red/yellow
+        ;;
+        ;; Data border colour changes per pair of edges.
 
         macro theme_new_byte    ; 33T, one T-state less than sample loop cycle
         ld      a,(.border_colour) ; copy existing colour into accumulator, 13T

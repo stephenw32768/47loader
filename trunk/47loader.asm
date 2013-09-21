@@ -200,10 +200,14 @@ loader_entry:
 .read_pilot_edge:
         ld      b,.timing_constant_pilot ; (7T)
 .read_edge:
+        ifdef   .theme_delay
+        call    .theme_delay      ; 226T if theme is playing ball
+        else
         ;; delay loop consumes 226T
         ld      a,14              ; prepare delay loop (7T)
         dec     a                 ; (4T)
         jr      nz,$-1            ; (12T when taken, 7T when not)
+        endif
         ifndef LOADER_DIE_ON_ERROR
         ld      a,0x7f            ; read port 0x7ffe (7T)
         else
