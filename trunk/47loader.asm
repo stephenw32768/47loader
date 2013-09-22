@@ -27,6 +27,16 @@ loader_start:
         ;;    During data loading, the Fletcher-16 checksum.
         ;; IX:target address of next byte to load.
 
+        ifdef LOADER_RESUME
+        ;; this is the entry point when re-entering the loader to
+        ;; load blocks glued together with tiny pilots in between
+loader_resume:
+        ifndef LOADER_LEAVE_INTERRUPTS_DISABLED
+        di                      ; re-disable interrupts if necessary
+        endif
+        ld      (.sp),sp        ; save initial stack pointer
+        jr      .loader_resume  ; jump into the loader
+        endif
 loader_entry:
         di
         ld      (.sp),sp        ; save initial stack pointer
@@ -87,6 +97,11 @@ loader_entry:
 .begin_sync:
         ;; change the border effect now that we're locked
         set_pilot_border
+
+        ifdef   LOADER_RESUME
+.loader_resume:equ $
+        endif
+
         ;; next, keep reading pilot pulses until we hit a
         ;; sync pulse
         call    .detect_sync

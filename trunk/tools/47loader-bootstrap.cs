@@ -54,8 +54,8 @@ public static class FortySevenLoaderBootstrap
           _lineData.Add((byte)arg);
         else if (arg is Token)
           _lineData.Add((byte)(Token)arg);
-        else if (arg is int)
-          AddInteger((int)arg);
+        else if (arg is int || arg is ushort)
+          AddInteger(Convert.ToInt32(arg));
         else if (arg is string)
           AddString((string)arg, token != Token.Rem);
         else if (arg is IEnumerable<string>)
@@ -68,6 +68,19 @@ public static class FortySevenLoaderBootstrap
     // adds an efficient representation of an integer to the line
     private void AddInteger(int i)
     {
+      // multiples of 1000 or 10000 can be represented as
+      // powers of 10
+      if ((i % 10000 == 0)) {
+        _lineData.Add((byte)Token.Val);
+        AddString((i / 10000).ToString() + "e4");
+        return;
+      }
+      if ((i % 1000 == 0)) {
+        _lineData.Add((byte)Token.Val);
+        AddString((i / 1000).ToString() + "e3");
+        return;
+      }
+
       switch (i) {
       case 0:
         _lineData.Add((byte)Token.Sin);
@@ -129,10 +142,11 @@ public static class FortySevenLoaderBootstrap
 
   // options
   static string _progName = string.Empty;
-  static int _border = -1, _paper = -1, _ink = -1, _bright = -1, _clear, _usr;
+  static int _border = -1, _paper = -1, _ink = -1, _bright = -1, _clear;
   static int _pause = -1;
   static List<string> _printTop = new List<string>();
   static List<string> _printBottom = new List<string>();
+  static List<Tuple<ushort, ushort>> _usr = new List<Tuple<ushort, ushort>>();
 
   // parses string into integer
   static T ParseInteger<T>(string s)
@@ -172,7 +186,21 @@ public static class FortySevenLoaderBootstrap
           _progName = _progName.Substring(0, 10);
         break;
       case "usr":
-        _usr = ParseInteger<int>(args[++i]);
+        var addresses = args[++i].Split(':');
+        ushort clear = 0, usr = 0;
+        switch (addresses.Length) {
+        case 1:
+          usr = ParseInteger<ushort>(addresses[0]);
+          break;
+        case 2:
+          clear = ParseInteger<ushort>(addresses[0]);
+          usr = ParseInteger<ushort>(addresses[1]);
+          break;
+        default:
+          Die();
+          break;
+        }
+        _usr.Add(Tuple.Create(clear, usr));
         break;
       case "pause":
         _pause = ParseInteger<int>(args[++i]);
@@ -209,7 +237,8 @@ Options:
 -pause n:  PAUSE to perform after loading
 -top s:    string to print at the top of the screen
 -bottom s: string to print at the bottom of the screen
--usr n:    address to jump to after loading");
+-usr [c:]n:address to jump to after loading, optionally CLEARing to
+           address c first");
     Environment.Exit(1);
   }
 
@@ -292,13 +321,13 @@ Options:
 
     _data.AddRange(line);
 
-    // if a second jump address specified, add it on its own line
-    if (_usr > 0) {
+    // if additional jump addresses specified, add them on their own
+    // lines
+    foreach (var tuple in _usr) {
       line = new BasicLine();
-      line.AddStatement(Token.Rem, "put your infy lives POKEs here ;-)");
-      _data.AddRange(line);
-      line = new BasicLine();
-      line.AddStatement(Token.Randomize, Token.Usr, _usr);
+      if (tuple.Item1 > 0)
+        line.AddStatement(Token.Clear, tuple.Item1);
+      line.AddStatement(Token.Randomize, Token.Usr, tuple.Item2);
       _data.AddRange(line);
     }
   }
