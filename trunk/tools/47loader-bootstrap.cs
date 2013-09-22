@@ -68,19 +68,6 @@ public static class FortySevenLoaderBootstrap
     // adds an efficient representation of an integer to the line
     private void AddInteger(int i)
     {
-      // multiples of 1000 or 10000 can be represented as
-      // powers of 10
-      if ((i % 10000 == 0)) {
-        _lineData.Add((byte)Token.Val);
-        AddString((i / 10000).ToString() + "e4");
-        return;
-      }
-      if ((i % 1000 == 0)) {
-        _lineData.Add((byte)Token.Val);
-        AddString((i / 1000).ToString() + "e3");
-        return;
-      }
-
       switch (i) {
       case 0:
         _lineData.Add((byte)Token.Sin);
@@ -90,7 +77,28 @@ public static class FortySevenLoaderBootstrap
         _lineData.Add((byte)Token.Sgn);
         _lineData.Add((byte)Token.Pi);
         break;
-      default: // VAL "i"
+      case 16384:
+        _lineData.Add((byte)Token.Val);
+        AddString("2^14");
+        break;
+      case 32768:
+        _lineData.Add((byte)Token.Val);
+        AddString("2^15");
+        break;
+      default:
+        // multiples of 1000 or 10000 can be represented as
+        // powers of 10
+        if ((i % 10000 == 0)) {
+          _lineData.Add((byte)Token.Val);
+          AddString((i / 10000).ToString() + "e4");
+          return;
+        }
+        if ((i % 1000 == 0)) {
+          _lineData.Add((byte)Token.Val);
+          AddString((i / 1000).ToString() + "e3");
+          return;
+        }
+        // VAL "i"
         _lineData.Add((byte)Token.Val);
         AddString(i.ToString());
         break;
