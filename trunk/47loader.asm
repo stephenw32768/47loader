@@ -138,6 +138,7 @@ loader_entry:
         ld      a,0x90;xor 0xff   ; load accumulator with our decode value
         xor     c                 ; XOR with byte just read
         ld      (ix+0),a          ; store byte
+.store_byte_instruction:
         ifdef   LOADER_BACKWARDS
         dec     ix
         else
@@ -359,3 +360,13 @@ loader_entry:
         ld      h,a             ; store the new value of the high byte
         endif
         ret
+
+        ;; reverse the direction of the load
+        ifdef   LOADER_CHANGE_DIRECTION
+loader_change_direction:
+        ld      hl,.store_byte_instruction + 1 ; point to the instruction
+        ld      a,8                            ; bitmask for toggling inc/dec
+        xor     (hl)                           ; switch the instruction
+        ld      (hl),a                         ; store it
+        ret
+        endif
