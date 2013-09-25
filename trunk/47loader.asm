@@ -28,7 +28,6 @@ loader_start:
         ;; IX:target address of next byte to load.
 
 loader_entry:
-        di
         ld      (.sp),sp        ; save initial stack pointer
         ;; set load error jump target to return to beginning
 
@@ -38,6 +37,7 @@ loader_entry:
         ;; setting up the environment
 .loader_init:
         push    de              ; save data length
+.loader_start_search:
         xor     a               ; clear accumulator
         ifdef   LOADER_LEGACY_CHECKSUM
         ld      (.checksum),a   ; zero checksum
@@ -49,11 +49,12 @@ loader_entry:
         set_searching_border
 
         ;; now we are ready to start looking for pilot pulses
+        di
 .detect_pilot_pulse:
         call    .read_pilot_edge; read low edge
 .detect_pilot_pulse_second:
         call    .read_edge      ; read high edge w/o reinitializing counter
-        jr      z,.loader_init+1; restart if no edge found
+        jr      z,.loader_start_search; restart if no edge found
         ld      a,b             ; place loop counter into accumulator
 .detect_pilot_pulse_cp:
         ;; compare against min loops for a pilot pulse, adjusting
@@ -164,23 +165,28 @@ loader_resume:
         endif
 
 .exit:
-        ;; exiting with carry set indicates success
-        ;; carry clear and zero set indicates BREAK pressed
-        ;; carry clear and zero clear indicates load error
-.sp:    equ     $ + 1
-        ld      sp,0            ; unwind stack if necessary
         ifndef  LOADER_LEAVE_INTERRUPTS_DISABLED
         ifdef   LOADER_RESTORE_IYL
         ld      iyl,0x3a
         endif
         ei
         endif
+        ;; exiting with carry set indicates success
+        ;; carry clear and zero set indicates BREAK pressed
+        ;; carry clear and zero clear indicates load error
+        ret     c
+        ;; BREAK or error if still here
+.sp:    equ     $ + 1
+        ld      sp,0            ; unwind stack if necessary
+.load_error_target:equ $+1
+        ;; if BREAK not pressed, we are either restarting
+        ;; the search or failing the load depending on
+        ;; the displacement set as .load_error_target
+        jr      nz,.loader_init    ; jump back to the beginning, perhaps
         ifndef  LOADER_DIE_ON_ERROR
         ret
         else
-        ;; only return if carry was set, i.e. a successful load
-        ret     c
-        rst     0
+        rst     0               ; reboot BASIC
         endif
         
         ;; reads a byte, checking it against the expected binary
@@ -191,16 +197,9 @@ loader_resume:
         xor     c               ; check byte just read
         ret     z               ; return if they match
 .load_error:
-        ld      sp,(.sp)        ; unwind stack if necessary
-.load_error_target:equ $+1
-        jr      .loader_init    ; jump back to the beginning, perhaps
-        ifndef  LOADER_DIE_ON_ERROR
         ;; indicate load error by clearing both carry and zero
         or      1
         jr      .exit
-        else
-        rst     0               ; reboot BASIC
-        endif
 
         ;; spins in a loop until an edge is found.
         ;; If BREAK/SPACE is pressed, bails out to .exit with
