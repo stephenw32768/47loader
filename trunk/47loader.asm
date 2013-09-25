@@ -81,18 +81,16 @@ loader_entry:
         pop     de              ; restore saved data length
         ld      a,h             ; place averaged cycle count into accumulator
         cp      .pilot_detection_threshold; compare against threshold
-        jr      c,.set_fast_timings ; jump forward if we have fast timings
-.set_rom_timings:
-        ld      a,.timing_constant_rom_data ; store timing constant
-        ld      (.timing_constant_addr),a
-        ld      a,.timing_constant_rom_threshold ; store zero/one threshold
-        ld      (.timing_constant_threshold_addr),a
-        jr      .begin_sync
-.set_fast_timings:
-        ld      a,.timing_constant_data ; store timing constant
-        ld      (.timing_constant_addr),a
-        ld      a,.timing_constant_threshold ; store zero/one threshold
-        ld      (.timing_constant_threshold_addr),a
+        ;; place timing constants into HL
+        ld      hl,(256 * .timing_constant_data) | .timing_constant_threshold
+        jr      c,.set_timings  ; jump forward if we are using fast timings
+        ;; place ROM timing constants into HL
+        ld      hl,(256 * .timing_constant_rom_data) | .timing_constant_rom_threshold
+.set_timings:
+        ld      a,h             ; put timing constant into accumulator
+        ld      (.timing_constant_addr),a ; store it
+        ld      a,l             ; put zero/one threshold into accumulator
+        ld      (.timing_constant_threshold_addr),a ; store it
 
 .begin_sync:
         ;; change the border effect now that we're locked
@@ -114,7 +112,9 @@ loader_entry:
         ;; from now on, load errors cause hard failures, so we dummy
         ;; out the .load_error jump target, causing the .load_error
         ;; code to actually be executed
-        xor     a               ; relative jump with no displacement
+        ;; .read_sanity_byte leaves zero in accumulator, so no need
+        ;; to reinit
+        ;xor     a               ; relative jump with no displacement
         ld      (.load_error_target),a
 
         ifndef  LOADER_LEGACY_CHECKSUM
@@ -188,7 +188,7 @@ loader_entry:
         endif
         
         ;; reads a byte, checking it against the expected binary
-        ;; value 01001101
+        ;; value 10110010
 .read_sanity_byte:
         call    .read_byte
         ld      a,10110010b;xor 0xff     ; constant for verification
