@@ -94,7 +94,14 @@ loader_resume:
         ifndef LOADER_LEAVE_INTERRUPTS_DISABLED
         di                      ; re-disable interrupts if necessary
         endif
-        ld      (.sp),sp        ; save stack pointer
+        ifndef LOADER_DIE_ON_ERROR
+        ;; we only need to re-save the stack pointer if
+        ;; clean exiting is enabled: resume never jumps back
+        ;; to .loader_init, it can only error out, so there'll
+        ;; be no need to restore the stack pointer before the
+        ;; inevitable RST 0
+        ld      (.sp),sp
+        endif
         endif
 
         ;; next, keep reading pilot pulses until we hit a
