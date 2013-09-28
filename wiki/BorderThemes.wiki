@@ -11,6 +11,7 @@ The label to define to specify a theme is `LOADER_THEME_*`, where `*` is one of 
 || *Name* || *Searching border* || *Pilot border (fast timings)* || *Pilot border (ROM timings)* || *Data border* || *Notes* ||
 || LDBYTES || Red/cyan || Red/cyan || Red/cyan || Blue/yellow || Colours used by the ROM loader. ||
 || LDBYTESPLUS || Black/red || Black/cyan || Black/white || Black/blue/yellow || ROM loader colours with a twist. ||
+|| FIRE || Black/red || Black/yellow || Black/white || Black/red/yellow || Alternates between red and yellow once per bit; the sequence is thus black-red-black-yellow. ||
 || FIRE_RIPPLE || Black/red || Black/yellow || Black/white || Black/red/yellow || Alternates between red and yellow once per byte, giving a rippling effect. ||
 || ITALY || Black/red || Black/green || Black/white || Red/white/green || The data colours are those of the Italian tricolour. ||
 || JUBILEE || Black/red || Black/blue || Black/white || Red/white/blue || Celebrating the 60th anniversary of HM Elizabeth II's coronation. ||
