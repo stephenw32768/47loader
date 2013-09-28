@@ -2,150 +2,17 @@
 // See LICENSE for distribution terms
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 
+using FortySevenLoader.Basic;
+
 // writes the BASIC for bootstrapping 47loader
 public static class FortySevenLoaderBootstrap
 {
-  // BASIC tokens
-  enum Token : byte {
-    Border = 0xe7,
-    Bright = 0xdc,
-    Clear = 0xfd,
-    Ink = 0xd9,
-    Lprint = 0xe0,
-    Paper = 0xda,
-    Pause = 0xf2,
-    Print = 0xf5,
-    Pi = 0xa7,
-    Randomize = 0xf9,
-    Rem = 0xea,  
-    Sgn = 0xbc,
-    Sin = 0xb2,
-    Usr = 0xc0,
-    Val = 0xb0,
-  }
-
-  // a single BASIC line
-  sealed class BasicLine : IEnumerable<byte>
-  {
-    static ushort _nextLineNumber = FirstLine;
-    readonly HighLow16 _lineNumber;
-    readonly List<byte> _lineData = new List<byte>();
-
-    internal BasicLine()
-    {
-      _lineNumber = _nextLineNumber++;
-    }
-
-    internal void AddStatement(Token token, params object[] args)
-    {
-      if (_lineData.Count > 0)
-        // close previous statement
-        _lineData.Add((byte)':');
-      _lineData.Add((byte)token);
-      foreach (var arg in args) {
-        if (arg is byte)
-          _lineData.Add((byte)arg);
-        else if (arg is Token)
-          _lineData.Add((byte)(Token)arg);
-        else if (arg is int || arg is ushort)
-          AddInteger(Convert.ToInt32(arg));
-        else if (arg is string)
-          AddString((string)arg, token != Token.Rem);
-        else if (arg is IEnumerable<string>)
-          AddStrings((IEnumerable<string>)arg);
-        else
-          throw new NotSupportedException(arg.GetType().FullName);
-      }
-    }
-
-    // adds an efficient representation of an integer to the line
-    private void AddInteger(int i)
-    {
-      switch (i) {
-      case 0:
-        _lineData.Add((byte)Token.Sin);
-        _lineData.Add((byte)Token.Pi);
-        break;
-      case 1:
-        _lineData.Add((byte)Token.Sgn);
-        _lineData.Add((byte)Token.Pi);
-        break;
-      case 16384:
-        _lineData.Add((byte)Token.Val);
-        AddString("2^14");
-        break;
-      case 32768:
-        _lineData.Add((byte)Token.Val);
-        AddString("2^15");
-        break;
-      default:
-        // multiples of 1000 or 10000 can be represented as
-        // powers of 10
-        if ((i % 10000 == 0)) {
-          _lineData.Add((byte)Token.Val);
-          AddString((i / 10000).ToString() + "e4");
-          return;
-        }
-        if ((i % 1000 == 0)) {
-          _lineData.Add((byte)Token.Val);
-          AddString((i / 1000).ToString() + "e3");
-          return;
-        }
-        // VAL "i"
-        _lineData.Add((byte)Token.Val);
-        AddString(i.ToString());
-        break;
-      }
-    }
-
-    // adds an optionally delimited string to the line
-    private void AddString(string s, bool delimit = true)
-    {
-      if (delimit)
-        _lineData.Add((byte)'"');
-      // use an 8-bit encoding rather than ASCII so we can
-      // embed keywords in strings
-      _lineData.AddRange(Encoding.GetEncoding(1252).GetBytes(s));
-      if (delimit)
-        _lineData.Add((byte)'"');
-    }
-
-    // adds strings, concatenating them with apostrophes
-    private void AddStrings(IEnumerable<string> strings)
-    {
-      string s = string.Join("\"'\"", strings);
-      AddString(s);
-    }
-
-    public IEnumerator<byte> GetEnumerator()
-    {
-      // length includes trailing ENTER
-      HighLow16 len = (ushort)(_lineData.Count + 1);
-
-      // line number is big-endian
-      yield return _lineNumber.High;
-      yield return _lineNumber.Low;
-      yield return len.Low;
-      yield return len.High;
-      foreach (var b in _lineData)
-        yield return b;
-      yield return (byte)13;
-    }
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-      return GetEnumerator();
-    }
-  }
-
-  const ushort FirstLine = 9047; // OVER NINE THOUSAND!
-
   static readonly List<byte> _data = new List<byte>();
 
   // options
@@ -254,7 +121,7 @@ Options:
   static void WriteTzx()
   {
     using (var output = Console.OpenStandardOutput()) {
-      output.Write(Encoding.ASCII.GetBytes("ZXTape!\x1a\x01\x14"), 0, 10);
+      new FortySevenLoader.Tzx.FileHeader().Write(output);
       output.WriteByte(0x10); // standard speed block
       output.WriteByte(0); // two-byte pause length, 0ms
       output.WriteByte(0);
@@ -271,8 +138,8 @@ Options:
       HighLow16 basicLen = (ushort)_data.Count;
       headerData[12] = basicLen.Low;
       headerData[13] = basicLen.High;
-      // autostart line at offsee 14
-      var autostart = new HighLow16(FirstLine);
+      // autostart line at offset 14
+      var autostart = new HighLow16(BasicLine.FirstLine);
       headerData[14] = autostart.Low;
       headerData[15] = autostart.High;
       // length of BASIC program without variables at offset 16
@@ -315,7 +182,8 @@ Options:
 
     // messages
     if (_printBottom.Count > 0)
-      line.AddStatement(Token.Lprint, (byte)'#', 1, (byte)';', _printBottom);
+      line.AddStatement(Token.Lprint, (byte)'#', 0/*1*/,
+                        (byte)';', _printBottom);
     if (_printTop.Count > 0)
       line.AddStatement(Token.Print, _printTop);
     
