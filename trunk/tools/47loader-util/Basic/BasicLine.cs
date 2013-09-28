@@ -140,9 +140,8 @@ namespace FortySevenLoader.Basic
     {
       switch (i) {
       case 0:
-        //_lineData.Add((byte)Token.Sin);
-        //_lineData.Add((byte)Token.Pi);
-        _lineData.Add((byte)Token.Bin);
+        _lineData.Add((byte)Token.Sin);
+        _lineData.Add((byte)Token.Pi);
         break;
       case 1:
         _lineData.Add((byte)Token.Sgn);

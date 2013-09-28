@@ -75,7 +75,10 @@ namespace FortySevenLoader.Basic
     /// </summary>
     Sgn = 0xbc,
 
-    //Sin = 0xb2,
+    /// <summary>
+    /// The byte representing the SIN keyword.
+    /// </summary>
+    Sin = 0xb2,
 
     /// <summary>
     /// The byte representing the USR keyword.

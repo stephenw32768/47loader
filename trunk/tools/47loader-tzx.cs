@@ -111,7 +111,7 @@ namespace FortySevenLoader
       (ushort)(1000 * TStatesPerMillisecond / PilotPulse);
     // this is used for embedding tiny pilots for instascreen and
     // progressive loading
-    private static readonly HighLow16 TinyPilotPulseCount = new HighLow16(4);
+    private static readonly HighLow16 TinyPilotPulseCount = new HighLow16(2);
 
     private static readonly byte _sanity =
       Convert.ToByte("10110010", 2);
