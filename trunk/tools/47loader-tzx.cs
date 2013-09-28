@@ -360,7 +360,7 @@ Options:
           }
 
           if (!_noHeader)
-            new Tzx.FileHeader().Write(_tapefile);
+            Tzx.FileHeader.Standard.Write(_tapefile);
           _data.AddRange(data.ToArray());
           if (_reverse)
             _data.Reverse();

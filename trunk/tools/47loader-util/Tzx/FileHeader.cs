@@ -29,7 +29,7 @@ namespace FortySevenLoader.Tzx
 
     /// <summary>
     /// Initializes a new instance of the
-    /// <see cref="FortySevenLoader.FileHeader"/> class.
+    /// <see cref="FortySevenLoader.FileHeader"/> struct.
     /// </summary>
     /// <param name='major'>
     /// The major version number, defaults to 1.
@@ -42,6 +42,16 @@ namespace FortySevenLoader.Tzx
       _major = major;
       _minor = minor;
     }
+
+    #endregion
+
+    #region Class properties
+
+    /// <summary>
+    /// A <see cref="FortySevenLoader.FileHeader"/> instance for standard
+    /// tape files.
+    /// </summary>
+    public static readonly FileHeader Standard = new FileHeader(1, 20);
 
     #endregion
 

@@ -121,7 +121,7 @@ Options:
   static void WriteTzx()
   {
     using (var output = Console.OpenStandardOutput()) {
-      new FortySevenLoader.Tzx.FileHeader().Write(output);
+      FortySevenLoader.Tzx.FileHeader.Standard.Write(output);
       output.WriteByte(0x10); // standard speed block
       output.WriteByte(0); // two-byte pause length, 0ms
       output.WriteByte(0);
