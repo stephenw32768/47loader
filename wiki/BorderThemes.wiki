@@ -10,6 +10,7 @@ The label to define to specify a theme is `LOADER_THEME_*`, where `*` is one of 
 
 || *Name* || *Searching border* || *Pilot border (fast timings)* || *Pilot border (ROM timings)* || *Data border* || *Notes* ||
 || LDBYTES || Red/cyan || Red/cyan || Red/cyan || Blue/yellow || Colours used by the ROM loader. ||
+|| LDBYTESPLUS || Black/red || Black/cyan || Black/white || Black/blue/yellow || ROM loader colours with a twist. ||
 || FIRE_RIPPLE || Black/red || Black/yellow || Black/white || Black/red/yellow || Alternates between red and yellow once per byte, giving a rippling effect. ||
 || ORIGINAL || Black/blue || Black/blue || Black/blue || Black/red || Colours used by 47loader early in its development.  Resembles the loader used by some Imagine/Ocean multiload games. ||
 || RAINBOW || Black/red || Black/green || Black/white || Black/colour, derived from the bits currently being loaded || The "standard" 47loader theme. ||
