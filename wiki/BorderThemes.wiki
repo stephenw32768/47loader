@@ -18,5 +18,5 @@ The label to define to specify a theme is `LOADER_THEME_*`, where `*` is one of 
 || ORIGINAL || Black/blue || Black/blue || Black/blue || Black/red || Colours used by 47loader early in its development.  Resembles the loader used by some Imagine/Ocean multiload games. ||
 || RAINBOW || Black/red || Black/green || Black/white || Black/colour, derived from the bits currently being loaded || The "standard" 47loader theme. ||
 || RAINBOW_RIPPLE || Black/red || Black/green || Black/white || Black/colour, derived from number of bytes remaining to be loaded. || The once-per-byte colour change gives a rippling effect. ||
-|| SPAIN || Red/white || Yellow/white || Yellow/white || Red/yellow || The data colours are those of the Spanish flag. ||
+|| SPAIN || Black/red || Black/yellow || Black/white || Red/yellow || The data colours are those of the Spanish flag. ||
 || SPEEDLOCK || Black/red || Black/red || Black/red || Black/blue || Resembles the colour scheme used by many iterations of the famous Speedlock loader. ||
