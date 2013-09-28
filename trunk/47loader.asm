@@ -43,13 +43,13 @@ loader_entry:
         ld      (.checksum),a   ; zero checksum
         endif
         ld      c,a             ; initialize pilot pulse counter
-        ld      h,a             ; initialize pulse counter sum
-        ld      l,a
         ld      d,a             ; knock out high byte of DE
         set_searching_border
 
         ;; now we are ready to start looking for pilot pulses
         di
+        ld      h,c             ; initialize pulse counter sum
+        ld      l,c
 .detect_pilot_pulse:
         call    .read_pilot_edge; read low edge
 .detect_pilot_pulse_second:

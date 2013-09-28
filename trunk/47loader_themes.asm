@@ -407,38 +407,43 @@
         endif
 
         ifdef LOADER_THEME_SPAIN
-        ;; Searching: red/white
-        ;; Pilot/sync:yellow/white
+        ;; Searching: black/red
+        ;; Pilot/sync:black/yellow, black/white with ROM timings
         ;; Data:      red/yellow
 
-        ;; no matter what, we always want the red bit set
-        ;; on the border; so rather than adding an extra
-        ;; instruction to do it, we can have the loader do
-        ;; it at the same time as setting the sound bit
-.theme_extra_border_bits:equ 2
-
         macro set_searching_border
-        ld      hl,0x00f6                ; OR 0, i.e. a 7T no-op
-        ld      (.border_instruction),hl
+        ;; accumulator contains 0 on entry
+        ld      h,a                ; zero HL
+        ld      l,a
+        ld      (.border_instr),hl ; set instructions to no-ops
+        ld      a,2                ; mask for red
+        ld      (.border_mask),a   ; black/red alternation
         endm
 
         macro set_pilot_border
-        ld      a,4                      ; border instr becomes OR 4,
-        ld      (.border_instruction+1),a; setting the green bit for yellow
+        ld      a,6                  ; mask for yellow
+        jr      c,.pilot_border_fast ; jump forward if fast timings are in use
+        ld      a,7                  ; mask for yellow
+.pilot_border_fast:
+        ld      (.border_mask),a     ; store the new mask
         endm
 
         macro set_data_border
-        ld      a,0xe6                   ; border inst becomes AND 4
-        ld      (.border_instruction),a
+        ld      a,4                  ; mask for green
+        ld      (.border_mask),a     ; store the new mask
+        ld      hl,0x3c3c            ; 2x "INC A"
+        ld      (.border_instr),hl   ; set instructions to INC A
         endm
 
 .theme_t_states:equ 23          ; high, but loader can compensate
         macro border
-        rla                     ; move EAR bit into bit 0 (4T)
+        rla                     ; shift EAR bit into carry (4T)
         sbc     a,a             ; A=0xFF on high edge, 0 on low edge (4T)
-        res     4,a             ; kill EAR bit (8T)
-.border_instruction:
-        and     0               ; combine with colour number (7T)
+.border_mask:equ $ + 1
+        and     4               ; A=4 on high edge, 0 on low edge (7T)
+.border_instr:
+        inc     a               ; A=5 on high edge, 1 on low edge (4T)
+        inc     a               ; A=6 on high edge, 2 on low edge (4T)
         endm
 
         endif
