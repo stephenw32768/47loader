@@ -6,6 +6,13 @@ loader_start:
         include "47loader_themes.asm"
         include "47loader_timings.asm"
 
+        ;; disabling clean error return implies disabling BREAK
+        ;; checking; don't want to reset the Speccy just because
+        ;; we accidentally nudged the space bar...
+        ifdef LOADER_DIE_ON_ERROR
+LOADER_IGNORE_BREAK:equ 1
+        endif
+
         ;; when the sound bit is added to the accumulator
         ;; immediately before OUT (0xFE), themes can add
         ;; additional bits
@@ -209,16 +216,17 @@ loader_resume:
         dec     a                 ; (4T)
         jr      nz,$-1            ; (12T when taken, 7T when not)
         endif
-        ifndef LOADER_DIE_ON_ERROR
         ld      a,0x7f            ; read port 0x7ffe (7T)
+        in      a,(0xfe)          ; (11T)
+        ifndef LOADER_IGNORE_BREAK
+        rra                       ; place BREAK/SPACE bit in carry (4T)
         else
         ;; if we're not checking BREAK/SPACE, we still do
         ;; a port read to keep the timings constant, but we
-        ;; dummy it out to a port that doesn't read keys
-        ld      a,0xff            ; read port 0xfffe (7T)
+        ;; dummy out the next instruction so the jump is never
+        ;; taken
+        scf                       ; ensure that we can never jump (4T)
         endif
-        in      a,(0xfe)          ; (11T)
-        rra                       ; place BREAK/SPACE bit in carry (4T)
         jr      nc,.break_pressed ; jump forward if pressed (7T)
         ;; straight through, the sampling routine requires
         ;; 143T, plus 34T per additional pass around the loop
@@ -243,7 +251,7 @@ loader_resume:
         ld      (.read_edge_test),a; save new test for next time (13T)
 .exit_edge_loop:
         ret                       ; (10T)
-        ifndef  LOADER_DIE_ON_ERROR
+        ifndef  LOADER_IGNORE_BREAK
 .break_pressed:
         xor     a                 ; clear carry and set zero to signal BREAK
         jr      .exit             ; bail straight out
