@@ -22,6 +22,7 @@
         ;; including the CALL and RET.
         ;;
         ;; Define one of:
+        ;; LOADER_THEME_BLEEPLOAD
         ;; LOADER_THEME_CANDY
         ;; LOADER_THEME_CYCLE_VERSA
         ;; LOADER_THEME_FIRE
@@ -170,6 +171,40 @@
 .colour:equ $+1
         xor     0               ; combine with colour number (7T)
         res     4,a             ; kill EAR bit (8T)
+        endm
+
+        endif
+
+        ifdef LOADER_THEME_BLEEPLOAD
+        ;; the Firebird Bleepload colour scheme
+        ;; Searching: red/yellow
+        ;; Pilot/sync:red/yellow
+        ;; Data:      blue/cyan
+
+        macro set_searching_border
+        ;; base colour for pilot border is red
+        ld      a,0xcf          ; SET 1,A
+        ld      (.colour_instr),a
+        endm
+
+        macro set_pilot_border
+        ;; same as searching border
+        endm
+
+        macro set_data_border
+        ;; base colour for data border is blue
+        ld      a,0xc7          ; SET 0,A
+        ld      (.colour_instr),a
+        endm
+
+.theme_t_states:equ 23          ; high, but loader can compensate
+        macro border
+        ;; 23T
+        rla                     ; move EAR bit into carry flag (4T)
+        sbc     a,a             ; A=0xFF on high edge, 0 on low edge (4T)
+        and     4               ; A=4 (green bit) on high edge (7T)
+.colour_instr:equ $+1
+        set     0,a             ; set the blue bit (8T)
         endm
 
         endif
