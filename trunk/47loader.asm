@@ -39,9 +39,6 @@ loader_entry:
         push    de              ; save data length
 .loader_start_search:
         xor     a               ; clear accumulator
-        ifdef   LOADER_LEGACY_CHECKSUM
-        ld      (.checksum),a   ; zero checksum
-        endif
         ld      c,a             ; initialize pilot pulse counter
         ld      d,a             ; knock out high byte of DE
         set_searching_border
@@ -121,7 +118,6 @@ loader_resume:
         ;xor     a               ; relative jump with no displacement
         ld      (.load_error_target),a
 
-        ifndef  LOADER_LEGACY_CHECKSUM
         ;; the next two bytes are the low and high bytes of the
         ;; starting value of the Fletcher-16 checksum.  Because
         ;; .read_byte also updates the checksum, we don't simply
@@ -133,7 +129,6 @@ loader_resume:
         call    .read_byte      ; read the high byte
         pop     hl              ; low byte was in C when pushed, now in L
         ld      h,c             ; copy high byte into H
-        endif
 
 .main_loop:
         call    .read_byte      ; take a wild guess
@@ -154,14 +149,6 @@ loader_resume:
         jr      nz,.main_loop     ; fetch the next byte if more to read
 
 .verify_checksum:
-        ifdef   LOADER_LEGACY_CHECKSUM
-        ;; this is verification for the simple XOR checksum
-        ;; that comes after the data stream
-        call    .read_byte      ; read the trailing checksum byte
-        ld      a,(.checksum)   ; retrieve saved checksum
-        neg                     ; set carry if non-zero
-        ccf                     ; invert carry
-        else
         ;; the Fletcher-16 checksum will finish up as 0xFFFF if
         ;; everything was read correctly.  So if we AND the two
         ;; bytes together and increment the result, we should have
@@ -169,13 +156,9 @@ loader_resume:
         ld      a,l             ; copy the low byte of the checksum into A
         and     h               ; combine with the high byte
         add     a,1             ; increment accumulator and set carry if zero
-        endif
 
 .exit:
         ifndef  LOADER_LEAVE_INTERRUPTS_DISABLED
-        ifdef   LOADER_RESTORE_IYL
-        ld      iyl,0x3a
-        endif
         ei
         endif
         ;; exiting with carry set indicates success
@@ -342,14 +325,8 @@ loader_resume:
         ld      b,.timing_constant_data - 1; set for next bit (7T)
         jr      nc,.read_bit    ; read the next bit if necessary (12/7T)
 
-        ;; update checksum with the byte just read
-        ifdef   LOADER_LEGACY_CHECKSUM
-.checksum:equ $ + 1
-        ld      a,0             ; place checksum into accumulator
-        xor     c               ; XOR with byte just read
-        ld      (.checksum),a   ; save new checksum for later
-        else
-        ;; this is a simple implementation of Fletcher-16:
+        ;; Next, we must update checksum with the byte just read.
+        ;; This is a simple implementation of Fletcher-16:
         ;; https://en.wikipedia.org/wiki/Fletcher%27s_checksum#Fletcher-16
         ;; rather than proper mod 255 arithmetic, we simply add the
         ;; bytes (implicit mod 256) and add 1 if there is overflow
@@ -360,7 +337,6 @@ loader_resume:
         add     a,h             ; add the low byte to the high byte
         adc     a,0             ; include the carry bit if it overflowed
         ld      h,a             ; store the new value of the high byte
-        endif
         ret
 
         ;; reverse the direction of the load
