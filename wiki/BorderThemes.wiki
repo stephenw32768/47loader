@@ -22,3 +22,4 @@ The label to define to specify a theme is `LOADER_THEME_*`, where `*` is one of 
 || RAINBOW_RIPPLE || Black/red || Black/green || Black/white || Black/colour, derived from number of bytes remaining to be loaded. || The once-per-byte colour change gives a rippling effect. ||
 || SPAIN || Black/red || Black/yellow || Black/white || Red/yellow || The data colours are those of the Spanish flag. ||
 || SPEEDLOCK || Black/red || Black/red || Black/red || Black/blue || Resembles the colour scheme used by many iterations of the famous Speedlock loader. ||
+|| VERSA || Solid cyan with fine blue lines || Solid white with fine blue lines || Solid white with fine blue lines || Solid blue with fine cyan and white lines || Inspired by an effect used by Peter Knight's [https://github.com/going-digital/versaload Versaload]. ||
