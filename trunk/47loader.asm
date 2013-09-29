@@ -73,7 +73,7 @@ loader_entry:
         ;; compare against min loops for a pilot pulse, adjusting
         ;; for the loop starting value
         cp      (2 * .pilot_pulse_min)+.timing_constant_pilot
-        jr      c,.loader_init+1; too few, not a pilot pulse, so restart
+        jr      c,.loader_start_search; too few, not a pilot pulse, so restart
         ifdef   LOADER_TAP_FILE_COMPAT
         ld      e,b             ; DE=loop counter
         add     hl,de           ; add to running total
