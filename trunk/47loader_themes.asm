@@ -22,20 +22,22 @@
         ;; including the CALL and RET.
         ;;
         ;; Define one of:
-        ;; LOADER_THEME_ORIGINAL
-        ;; LOADER_THEME_SPEEDLOCK
-        ;; LOADER_THEME_LDBYTES
-        ;; LOADER_THEME_JUBILEE
-        ;; LOADER_THEME_RAINBOW
-        ;; LOADER_THEME_RAINBOW_RIPPLE
+        ;; LOADER_THEME_CANDY
+        ;; LOADER_THEME_CYCLE_VERSA
         ;; LOADER_THEME_FIRE
         ;; LOADER_THEME_FIRE_RIPPLE
         ;; LOADER_THEME_ICE
-        ;; LOADER_THEME_SPAIN
-        ;; LOADER_THEME_CANDY
-        ;; LOADER_THEME_VERSA
+        ;; LOADER_THEME_JUBILEE
+        ;; LOADER_THEME_LDBYTES
+        ;; LOADER_THEME_LDBYTESPLUS
+        ;; LOADER_THEME_ORIGINAL
+        ;; LOADER_THEME_RAINBOW
+        ;; LOADER_THEME_RAINBOW_RIPPLE
         ;; LOADER_THEME_RAINBOW_VERSA
-        ;; LOADER_THEME_CYCLE_VERSA
+        ;; LOADER_THEME_SETYBDL
+        ;; LOADER_THEME_SPAIN
+        ;; LOADER_THEME_SPEEDLOCK
+        ;; LOADER_THEME_VERSA
         ;; 
         ;; LOADER_THEME_RAINBOW is the "standard".  Its border
         ;; implementation requires 19 T-states.  Other themes
@@ -123,6 +125,40 @@
         macro set_data_border
         ;; base colour for data border is blue
         ld      a,1
+        ld      (.colour),a
+        endm
+
+.theme_t_states:equ 23          ; high, but loader can compensate
+        macro border
+        ;; 23T
+        rla                     ; move EAR bit into carry flag (4T)
+        sbc     a,a             ; A=0xFF on high edge, 0 on low edge (4T)
+.colour:equ $+1
+        xor     0               ; combine with colour number (7T)
+        res     4,a             ; kill EAR bit (8T)
+        endm
+
+        endif
+
+        ifdef LOADER_THEME_SETYBDL
+        ;; inverse of the ROM loader's colour scheme
+        ;; Searching: blue/yellow
+        ;; Pilot/sync:blue/yellow
+        ;; Data:      red/cyan
+
+        macro set_searching_border
+        ;; base colour for pilot border is blue
+        ld      a,1
+        ld      (.colour),a
+        endm
+
+        macro set_pilot_border
+        ;; same as searching border
+        endm
+
+        macro set_data_border
+        ;; base colour for data border is red
+        ld      a,2
         ld      (.colour),a
         endm
 
