@@ -157,9 +157,11 @@
         endm
         macro set_pilot_border
         ld      a,1                   ; blue
+        ifdef   LOADER_TAP_FILE_COMPAT
         jr      c,.pilot_border_fast  ; jump forward if fast timings in use
         ld      a,7                   ; white
 .pilot_border_fast:
+        endif
         ld      (.border_instruction+1),a
         endm
         macro set_data_border
@@ -194,9 +196,11 @@
 
         macro set_pilot_border
         ld      a,4                     ; mask for green
+        ifdef   LOADER_TAP_FILE_COMPAT
         jr      c,.pilot_border_fast    ; jump forward if fast timings in use
         ld      a,7                     ; mask for white
 .pilot_border_fast:
+        endif
         ld      (.border_mask),a
         endm
 
@@ -237,9 +241,11 @@
 
         macro set_pilot_border
         ld      a,4                     ; mask for green
+        ifdef   LOADER_TAP_FILE_COMPAT
         jr      c,.pilot_border_fast    ; jump forward if fast timings in use
         ld      a,7                     ; mask for white
 .pilot_border_fast:
+        endif
         ld      (.border_mask),a
         endm
 
@@ -302,8 +308,10 @@
         endm
         macro set_pilot_border
         ld      a,6                  ; yellow
+        ifdef   LOADER_TAP_FILE_COMPAT
         jr      c,.pilot_border_fast ; jump forward if fast timings in use
         ld      a,7                  ; white
+        endif
 .pilot_border_fast:
         ld      (.border_colour),a
         endm
@@ -345,9 +353,11 @@
         endm
         macro set_pilot_border
         ld      a,6                  ; yellow
+        ifdef   LOADER_TAP_FILE_COMPAT
         jr      c,.pilot_border_fast ; jump forward if fast timings in use
         ld      a,7                  ; white
 .pilot_border_fast:
+        endif
         ld      (.border_colour),a
         endm
         macro set_data_border
@@ -389,7 +399,6 @@
         endm
         macro set_pilot_border
         ld      a,7             ; white
-.pilot_border_fast:
         ld      (.border_colour),a
         endm
         macro set_data_border
@@ -422,9 +431,11 @@
 
         macro set_pilot_border
         ld      a,6                  ; mask for yellow
+        ifdef   LOADER_TAP_FILE_COMPAT
         jr      c,.pilot_border_fast ; jump forward if fast timings are in use
         ld      a,7                  ; mask for yellow
 .pilot_border_fast:
+        endif
         ld      (.border_mask),a     ; store the new mask
         endm
 
@@ -467,9 +478,11 @@
         endm
         macro set_pilot_border
         ld      a,4                   ; green
+        ifdef   LOADER_TAP_FILE_COMPAT
         jr      c,.pilot_border_fast  ; jump forward if fast timings in use
         ld      a,7                   ; white
 .pilot_border_fast:
+        endif
         ld      (.border_instruction+1),a
         endm
         macro set_data_border
@@ -508,9 +521,11 @@
         endm
         macro set_pilot_border
         ld      a,6                  ; yellow
+        ifdef   LOADER_TAP_FILE_COMPAT
         jr      c,.pilot_border_fast ; jump forward if fast timings in use
         ld      a,7                  ; white
 .pilot_border_fast:
+        endif
         ld      (.border_colour),a
         endm
         macro set_data_border
@@ -547,9 +562,11 @@
         endm
         macro set_pilot_border
         ld      a,5                  ; cyan
+        ifdef   LOADER_TAP_FILE_COMPAT
         jr      c,.pilot_border_fast ; jump forward if fast timings in use
         ld      a,7                  ; white
 .pilot_border_fast:
+        endif
         ld      (.border_colour),a
         endm
         macro set_data_border
@@ -637,9 +654,11 @@
         endm
         macro set_pilot_border
         ld      a,4                     ; mask for green
+        ifdef   LOADER_TAP_FILE_COMPAT
         jr      c,.pilot_border_fast    ; jump forward if fast timings in use
         ld      a,7                     ; mask for white
 .pilot_border_fast:
+        endif
         ld      (.background_colour),a ; green or white background
         endm
         macro set_data_border
@@ -690,9 +709,11 @@
         endm
         macro set_pilot_border
         ld      a,12                   ; green lines (with sound bit)
+        ifdef   LOADER_TAP_FILE_COMPAT
         jr      c,.pilot_border_fast   ; jump forward if fast timings in use
         or      7                      ; white lines
 .pilot_border_fast:
+        endif
         ld      (.line_colour),a
         endm
         macro set_data_border
