@@ -1,0 +1,35 @@
+#summary A very simple example of how to use the loader
+
+This code uses 47loader to load a screen at 16384, then some code at 49152, then executes the loaded code.  If an error occurs or BREAK/SPACE is pressed, the standard ROM error handlers are used.
+
+47loader has several configuration settings, but the only required setting is to choose one of the BorderThemes.
+
+{{{
+LOADER_THEME_RAINBOW:equ 1
+
+        ;; place the loader into uncontended memory
+        org     32768
+
+        ;; load a screen directly into the video RAM
+        ld      ix,16384
+        ld      de,6912
+        call    loader
+
+        ;; load 8144 bytes at address 49152
+        ld      ix,49152
+        ld      de,8144
+        call    loader
+
+        ;; jump to the code we just loaded
+        jp      49152
+
+loader:
+        ;; call the loader proper
+        call    loader_entry
+        ;; carry set means success
+        ret     c
+        ;; if failed, drop into error handler
+        include "47loader_error_handler.asm"
+
+        include "47loader.asm"
+}}}
