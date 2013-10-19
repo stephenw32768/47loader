@@ -1,5 +1,9 @@
 #summary A very simple example of how to use the loader
 
+Here are some simple ways of using 47loader.
+
+= The simplest example =
+
 This code uses 47loader to load a screen at 16384, then some code at 49152, then executes the loaded code.  If an error occurs or BREAK/SPACE is pressed, the standard ROM error handlers are used.
 
 47loader has several configuration settings, but the only required setting is to choose one of the BorderThemes.
@@ -30,6 +34,22 @@ loader:
         ret     c
         ;; if failed, drop into error handler
         include "47loader_error_handler.asm"
-
-        include "47loader.asm"
 }}}
+
+Assemble this with [http://pasmo.speccy.org/ Pasmo] and place it into a TZX file.  Pasmo's --tzx output format is one way of doing this.
+
+To add the 47loader blocks to the output file, use the 47loader-tzx tool.  If your TZX file is called "mygame.tzx", the 6192-byte screen is called "mygame.scr" and the code is in a file called "mygame_code.bin", the commands to use are:
+
+{{{
+47loader-tzx -output mygame.tzx mygame.scr
+47loader-tzx -output mygame.tzx mygame.bin
+}}}
+
+For aesthetic reasons, you might like the game block to have a much shorter pilot tone.  Try:
+
+{{{
+47loader-tzx -output mygame.tzx -pause 100 mygame.scr
+47loader-tzx -output mygame.tzx -pilot 300 mygame.bin
+}}}
+
+This variation reduces the pause after the screen to a tenth of a second, and reduces the length of the second block's pilot tone to three-tenths of a second.
