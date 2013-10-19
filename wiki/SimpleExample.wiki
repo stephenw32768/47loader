@@ -9,6 +9,9 @@ This code uses 47loader to load a screen at 16384, then some code at 49152, then
 47loader has several configuration settings, but the only required setting is to choose one of the BorderThemes.
 
 {{{
+        ;; this is the border theme to use.  A full list of the
+        ;; available themes is on the Wiki:
+        ;; https://code.google.com/p/47loader/wiki/BorderThemes
 LOADER_THEME_RAINBOW:equ 1
 
         ;; place the loader into uncontended memory
@@ -53,3 +56,63 @@ For aesthetic reasons, you might like the game block to have a much shorter pilo
 }}}
 
 This variation reduces the pause after the screen to a tenth of a second, and reduces the length of the second block's pilot tone to three-tenths of a second.
+
+= A backwards-loading screen =
+
+In this example, we will load the screen backwards.  The attributes appear first, then the pixmap loads from the bottom of the screen.  After that, the game loads conventionally.  The code is only a little bit more complicated:
+
+{{{
+        ;; this is the border theme to use.  A full list of the
+        ;; available themes is on the Wiki:
+        ;; https://code.google.com/p/47loader/wiki/BorderThemes
+LOADER_THEME_RAINBOW:equ 1
+        ;; the first block will be loaded backwards
+LOADER_BACKWARDS:equ 1
+        ;; we will also be loading a block forwards, so we need to
+        ;; include code to reverse the direction of the load
+LOADER_CHANGE_DIRECTION:equ 1
+
+        org     32768
+
+        ;; we are loading the screen backwards, so we point IX at
+        ;; the _last_ byte, not the first
+        ld      ix,23295
+        ld      de,6912
+        call    loader
+
+        ;; we want to load the next block forwards, so we need to
+        ;; tell the loader to do that
+        call    loader_change_direction
+
+        ;; now we load the 8144-byte game starting at address 49152
+        ld      ix,49152
+        ld      de,8144
+        call    loader
+
+        ;; jump to the code we just loaded
+        jp      49152
+
+loader:
+        ;; call the loader proper
+        call    loader_entry
+        ;; carry set means success
+        ret     c
+        ;; if failed, drop into error handler
+        include "47loader_error_handler.asm"
+
+        ;;
+        include "47loader.asm"
+}}}
+
+You must also reverse the screen when adding it to the TZX file.  47loader-tzx can do it for you.  To create the 47loader blocks for this example, do:
+{{{
+47loader-tzx -output mygame.tzx -reverse mygame.scr
+47loader-tzx -output mygame.tzx mygame.bin
+}}}
+
+Or, if you like the really short pilot tone for the second block from the first example, you can of course combine that with the reversed screen:
+
+{{{
+47loader-tzx -output mygame.tzx -pause 100 -reverse mygame.scr
+47loader-tzx -output mygame.tzx -pilot 300 mygame.bin
+}}}
