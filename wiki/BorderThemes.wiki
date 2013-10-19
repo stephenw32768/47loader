@@ -12,6 +12,7 @@ The label to define to specify a theme is `LOADER_THEME_*`, where `*` is one of 
 || BLEEPLOAD || Red/yellow || Red/yellow || Red/yellow || Blue/cyan || The Firebird Bleepload colour scheme. ||
 || CANDY || Black/magenta || Black/yellow || Black/white || Black/magenta/yellow || Inspired by the purple/yellow candy canes in _Wreck-It Ralph_. ||
 || CYCLE_VERSA || Solid black with fine red lines || Solid black with fine green lines || Solid black with fine white lines || Solid colour, cycling every 256 bytes, with fine black or white lines || Inspired by an effect used by Peter Knight's [https://github.com/going-digital/versaload Versaload]. ||
+|| ELIXIRVITAE || Black/magenta || Black/cyan || Black/white || Black/magenta/cyan || Designed to complement _[http://www.worldofspectrum.org/forums/showthread.php?t=45308 Elixir Vitae]_'s loading screen. ||
 || FIRE || Black/red || Black/yellow || Black/white || Black/red/yellow || Alternates between red and yellow once per bit; the sequence is thus black-red-black-yellow. ||
 || FIRE_RIPPLE || Black/red || Black/yellow || Black/white || Black/red/yellow || Alternates between red and yellow once per byte, giving a rippling effect. ||
 || ICE || Blue/cyan || Blue/white || Blue/white || Blue/cyan/white || Data border alternates between cyan and white once per byte. ||
