@@ -47,12 +47,12 @@ loader_progressive:
         call    LOADER_PROGRESSIVE_INITIAL
         else
         call    loader_resume
+        endif
         ifndef  LOADER_DIE_ON_ERROR
         jr      nc,.loader_progressive_out
         endif
         exx                     ; swap in the alternate registers
         jr      .loader_progressive_load_next_block
-        endif
 
 .loader_progressive_loop:
         call    loader_resume   ; load the block
