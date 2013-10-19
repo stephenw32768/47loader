@@ -41,7 +41,7 @@ loader:
         include "47loader.asm"
 }}}
 
-Assemble this with [http://pasmo.speccy.org/ Pasmo] and place it into a TZX file.  Pasmo's --tzx output format is one way of doing this.
+Save this into the same directory as the 47loader source files, assemble it with [http://pasmo.speccy.org/ Pasmo] and place it into a TZX file.  Pasmo's --tzx output format is one way of doing this.  Obviously, you will need to change the address and length of the game code block, and perhaps assemble the loader at a different address.
 
 To add the 47loader blocks to the output file, use the 47loader-tzx tool.  If your TZX file is called "mygame.tzx", the 6192-byte screen is called "mygame.scr" and the code is in a file called "mygame_code.bin", the commands to use are:
 
