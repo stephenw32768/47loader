@@ -37,6 +37,8 @@ loader:
         ret     c
         ;; if failed, drop into error handler
         include "47loader_error_handler.asm"
+
+        include "47loader.asm"
 }}}
 
 Assemble this with [http://pasmo.speccy.org/ Pasmo] and place it into a TZX file.  Pasmo's --tzx output format is one way of doing this.
@@ -100,7 +102,6 @@ loader:
         ;; if failed, drop into error handler
         include "47loader_error_handler.asm"
 
-        ;;
         include "47loader.asm"
 }}}
 
