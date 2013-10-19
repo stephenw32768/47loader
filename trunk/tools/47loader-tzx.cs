@@ -131,6 +131,7 @@ namespace FortySevenLoader
     private static Stream _tapefile;
     private static bool _reverse;
     private static bool _noHeader;
+    private static string _outputFileName;
     private static ushort _progressive;
     private static Action WriteData = WriteData_Simple;
 
@@ -150,70 +151,83 @@ namespace FortySevenLoader
     // parses options, returns array of file names
     static string[] ParseArguments(string[] args)
     {
-      for (int i = 0; i < args.Length; i++) {
-        if (args[i].FirstOrDefault() != '-') {
-        // we've come to the end of the options, all the rest
+      for (int i = 0; i < args.Length; i++)
+      {
+        if (args[i].FirstOrDefault() != '-')
+        {
+          // we've come to the end of the options, all the rest
           // are files
-        return args.Skip(i).ToArray();
+          return args.Skip(i).ToArray();
         }
 
-        switch (args[i].TrimStart('-')) {
-        case "noheader":
-          _noHeader = true;
-          break;
+        switch (args[i].TrimStart('-'))
+        {
+          case "noheader":
+            _noHeader = true;
+            break;
 
-        case "reverse":
-          _reverse = true;
-          break;
+          case "reverse":
+            _reverse = true;
+            break;
 
-        case "pilot":
+          case "pilot":
           // next arg is pilot length in milliseconds
-          checked {
-            int ms = ParseInteger<int>(args[++i]);
-            int tstates = ms * TStatesPerMillisecond;
-            HighLow16 pilotPulses = (ushort)(tstates / PilotPulse);
-            _blockHeader.PilotPulseCount = pilotPulses;
-          }
-          break;
+            checked
+            {
+              int ms = ParseInteger<int>(args[++i]);
+              int tstates = ms * TStatesPerMillisecond;
+              HighLow16 pilotPulses = (ushort)(tstates / PilotPulse);
+              _blockHeader.PilotPulseCount = pilotPulses;
+            }
+            break;
 
-        case "pause":
+          case "pause":
           // next arg is pause length in milliseconds
-          checked {
-            HighLow16 ms = ParseInteger<ushort>(args[++i]);
-            _blockHeader.Pause = ms;
-          }
-          break;
+            checked
+            {
+              HighLow16 ms = ParseInteger<ushort>(args[++i]);
+              _blockHeader.Pause = ms;
+            }
+            break;
 
-        case "extracycles":
-          sbyte cycles = ParseInteger<sbyte>(args[++i]);
-          HighLow16 new0 = Pulse.Zero(cycles);
-          HighLow16 new1 = Pulse.One(cycles);
-          _blockHeader.SyncPulse0 = _blockHeader.ZeroPulse = new0;
-          _blockHeader.SyncPulse1 = _blockHeader.OnePulse = new1;
-          break;
+          case "extracycles":
+            sbyte cycles = ParseInteger<sbyte>(args[++i]);
+            HighLow16 new0 = Pulse.Zero(cycles);
+            HighLow16 new1 = Pulse.One(cycles);
+            _blockHeader.SyncPulse0 = _blockHeader.ZeroPulse = new0;
+            _blockHeader.SyncPulse1 = _blockHeader.OnePulse = new1;
+            break;
 
-        case "instascreen":
-          WriteData = WriteData_Instascreen;
-          break;
+          case "instascreen":
+            WriteData = WriteData_Instascreen;
+            break;
 
-        case "progressive":
+          case "progressive":
           // next arg is number of progressive chunks
-          checked {
-            _progressive = ParseInteger<ushort>(args[++i]);
-          }
-          WriteData = WriteData_Progressive;
-          break;
+            checked
+            {
+              _progressive = ParseInteger<ushort>(args[++i]);
+            }
+            WriteData = WriteData_Progressive;
+            break;
 
-        default:
+          case "output":
+            // next arg is name of file to which to write
+            _outputFileName = args[++i];
+            if (File.Exists(_outputFileName))
+              _noHeader = true;
+            break;
+
+          default:
           // unknown option
-          Console.Error.WriteLine("Unknown option \"{0}\"", args[i]);
-          goto die;
+            Console.Error.WriteLine("Unknown option \"{0}\"", args[i]);
+            goto die;
         }
-    }
+      }
 
       // still here?  Bad option or no files...
-    die:
-        Die();
+      die:
+      Die();
       return null;
     }
 
@@ -221,17 +235,30 @@ namespace FortySevenLoader
     static void Die()
     {
       Console.Error.WriteLine(@"Usage: 47loader-tzx [options] file [file ...]
-Writes tape files to standard output
 
 Options:
--noheader     :omit the TZX file header
--reverse      : reverse the block
--pilot n      : length of pilot in milliseconds
+-extracycles n: additional 34T cycles to add to timings.  May be negative
+-instascreen  : create a screen block for use with 47loader_instascreen
+-noheader     : omit the TZX file header (automatically selected if output
+                file already exists)
+-output       : name of file to write; if not specified, writes to standard
+                output.  Appends to file if it already exists
 -pause n      : pause n milliseconds after block
--extracycles n: additional 34T cycles to add to timings
+-pilot n      : length of pilot in milliseconds
 -progressive n: create a progressively-loaded block with n chunks
--instascreen  : create a screen block for use with 47loader_instascreen");
+-reverse      : reverse the block");
       Environment.Exit(1);
+    }
+
+    // opens the output file or stream
+    private static Stream OpenOutput()
+    {
+      if (string.IsNullOrWhiteSpace(_outputFileName))
+        return Console.OpenStandardOutput();
+
+      var str = File.Open(_outputFileName, FileMode.OpenOrCreate);
+      str.Seek(0, SeekOrigin.End);
+      return str;
     }
 
     // normal implementation of WriteData for simple blocks
@@ -348,7 +375,7 @@ Options:
         var files = ParseArguments(args);
 
         using (var data = new MemoryStream())
-        using (_tapefile = Console.OpenStandardOutput()) {
+        using (_tapefile = OpenOutput()) {
           for (int i = 0; i < files.Length; i++) {
             if (!File.Exists(files[i])) {
               Console.Error.WriteLine("File not found: " + files[i]);
