@@ -16,6 +16,10 @@
         ;; the address of the attribute byte to change as the
         ;; progressive chunks are loaded.
 
+        ifdef   LOADER_TAP_FILE_COMPAT
+        ;.error  Progressive loads cannot work in TAP files
+        endif
+
 loader_progressive:
         ;; set up the environment.  DE' will point to the
         ;; colour byte to be used next

@@ -13,37 +13,45 @@
         ;;
         ;; The macro assumes forwards loading.
 
-        macro   loader_instascreen,addr,err
-
-        if      addr < 32768
+        if      LOADER_INSTASCREEN_ATTR_ADDRESS < 32768
         .error  Load attributes into uncontended memory
         endif
+        ifdef   LOADER_TAP_FILE_COMPAT
+        ;.error  Instascreen cannot work in TAP files
+        endif
+
+loader_instascreen:
+        ;; clear border attributes
+        ld      hl,0x5800
+        ld      de,0x5b00 - 64
+        ld      bc,64
+        ldir
 
         ;; load pixmap directly into screen
         ld      ix,0x4000
-        ld      de,0x1800
+        ld      d,0x18          ; DE=0x1800
         call    loader_entry
         ifndef  LOADER_DIE_ON_ERROR
-        jr      nc,err          ; bail out on error
+        ret     nc              ; bail out on error
         endif
         ;; load attrs into high memory
-        ld      ix,addr
-        ld      de,768
+        ld      ix,LOADER_INSTASCREEN_ATTR_ADDRESS
+        ;ld      de,768
+        ld      d,3             ; DE=0x300, 768
         call    loader_resume
         ifndef  LOADER_DIE_ON_ERROR
-        jr      nc,err
+        ret     nc
         endif
 
         ;; copy attributes to screen, reading an edge
         ;; every 32 bytes
         ld      d,0x58          ; DE=0x5800 b/c DE=0 after a load
-        ld      hl,addr
+        ld      hl,LOADER_INSTASCREEN_ATTR_ADDRESS
 .copy_loop:
         ld      bc,32
         ldir                    ; copy this block
         call    .read_edge      ; (this call corrupts A and B)
-        ld      a,d             ; look at high byte of destination
-        cp      0x5b            ; see if it's past the attributes
-        jr      nz,.copy_loop   ; loop back if not
-
-        endm
+        ld      a,0x5a          ; when done, DE will be pointing at 0x5B00
+        cp      d               ; compare D against 0x5A
+        jr      nc,.copy_loop   ; loop if no overflow, i.e. D <= 0x5A
+        ret                     ; return with carry set to indicate success
