@@ -212,7 +212,6 @@
         ifdef LOADER_THEME_BRAZIL
         ;; based on the Brazilian flag, as requested by
         ;; Alessandro Grussu (http://alessandrogrussu.it/)
-        ;; the Firebird Bleepload colour scheme
         ;; Searching: blue/white
         ;; Pilot/sync:blue/white
         ;; Data:      green/yellow
