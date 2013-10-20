@@ -209,6 +209,79 @@
 
         endif
 
+        ifdef LOADER_THEME_BRAZIL
+        ;; based on the Brazilian flag, as requested by
+        ;; Alessandro Grussu (http://alessandrogrussu.it/)
+        ;; the Firebird Bleepload colour scheme
+        ;; Searching: blue/white
+        ;; Pilot/sync:blue/white
+        ;; Data:      green/yellow
+
+        macro set_searching_border
+        ;; on alternate edges, we want to flick the border between
+        ;; blue and white.  The colour numbers are 1 for blue and
+        ;; 7 for white; or, in binary, 001 and 111.
+        ;;
+        ;; So if we can arrange to have the accumulator containing
+        ;; all zeros or all ones on alternate edges, we simply need
+        ;; to mask off bits 1 and 2, giving us 000 or 110, then
+        ;; set bit 0, giving 001 or 111
+        ld      a,6             ; mask for bits 110
+        ld      (.colour_mask),a
+        ld      a,0xc7          ; SET 0,A
+        ld      (.colour_instr),a
+        endm
+
+        macro set_pilot_border
+        ;; same as searching border
+        endm
+
+        macro set_data_border
+        ;; on alternate edges, we want to flick the border between
+        ;; green and yellow.  The colour numbers are 4 for green and
+        ;; 6 for yellow; or, in binary, 100 and 110.
+        ;; 
+        ;; Switching between these colours is very similar to the
+        ;; strategy for the pilot border, except that we mask off
+        ;; only bit 1, giving us 000 or 010, then always set bit 2,
+        ;; giving us 100 or 110.
+        ld      a,2             ; mask for bits 010
+        ld      (.colour_mask),a
+        ld      a,0xd7          ; SET 2,A
+        ld      (.colour_instr),a
+        endm
+
+        ;; the loader expects a theme to run in either 19T or 23T,
+        ;; and we have to declare the time required
+.theme_t_states:equ 23
+        macro border
+        ;; 23T
+        ;; in order for the logic described in the above comments
+        ;; to work, we need the accumulator to contain all zeros or
+        ;; all ones on alternate edges.  At the point that this code
+        ;; is executed, the accumulator's sign bit is 0 or 1 on
+        ;; alternate edges.  It's simple to move this into the
+        ;; carry flag using a rotate instruction, so carry will be
+        ;; either set or clear on alternate edges.  Following that,
+        ;; we can use use SBC A,A to clear the accumulator and then
+        ;; subtract the carry flag from it; so if carry was clear, we
+        ;; finish with the accumulator containing zero; if it was set
+        ;; we finish with it containing -1, aka 255, aka all ones
+        rla                     ; move EAR bit into carry flag (4T)
+        sbc     a,a             ; A=0xFF on high edge, 0 on low edge (4T)
+        ;; now, we apply the logic described in the above comments.
+        ;; The example values here are the values for the data border,
+        ;; but they will be changes by set_searching_border and
+        ;; set_data_border to be the colours appropriate for the
+        ;; phase that the loader is currently in.
+.colour_mask:equ $+1
+        and     2               ; mask off the red bit (7T)
+.colour_instr:equ $+1
+        set     2,a             ; set the green bit (8T)
+        endm
+
+        endif
+
         ifdef LOADER_THEME_JUBILEE
         ;; Searching: black/red
         ;; Pilot/sync:black/blue; black/white with ROM timings
