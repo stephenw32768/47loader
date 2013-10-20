@@ -29,15 +29,8 @@
         endif
 
 loader_progressive:
-        ;; set up the environment.  DE' will point to the address
-        ;; to change next; B' will be the number of chunks remaining.
-        ;; colour byte to be used next
         push    de              ; stack the address passed in DE
-        exx                     ; swap in the alternate registers
-        ex      de,hl           ; save HL' in DE'
-        pop     hl              ; save the stacked address in HL'
-        ld      b,a             ; save the number of chunks remaining in B'
-        exx                     ; return to main registers
+        push    af              ; stack the number of chunks to load
 
         ;; bootstrap the progressive load by reading two
         ;; bytes: the length of the first block to load
@@ -48,15 +41,28 @@ loader_progressive:
         else
         call    loader_resume
         endif
-        ifndef  LOADER_DIE_ON_ERROR
-        jr      nc,.loader_progressive_out
-        endif
+
+        ;; now set up the environment.  HL' will point to the address
+        ;; to change next; B' will be the number of chunks remaining
         exx                     ; swap in the alternate registers
-        jr      .loader_progressive_load_next_block
+        ex      de,hl           ; save HL' in DE'
+        pop     bc              ; put the number of chunks to load in B'
+        pop     hl              ; put the attr address in HL'
+
+        ;; now we've fixed the stack and set up the alternate
+        ;; registers, we can jump into the loading loop
+        jr      c,.loader_progressive_load_next_block
+        ;; if we're still here, the initial load failed
+
+        ;; the alternate registers must be swapped in when
+        ;; control passes here
+.loader_progressive_out:
+        ex      de,hl           ; restore HL'
+        exx                     ; main registers back in
+        ret
 
 .loader_progressive_loop:
         call    loader_resume   ; load the block
-.loader_progressive_block_loaded:
         ifndef  LOADER_DIE_ON_ERROR
         jr      nc,.loader_progressive_out
         endif
@@ -84,8 +90,3 @@ loader_progressive:
         dec     ix              ; reposition IX before the block length
         dec     ix
         jr      .loader_progressive_loop ; loop back to load the block
-
-.loader_progressive_out:
-        ex      de,hl           ; restore DE'
-        exx                     ; main registers back in
-        ret
