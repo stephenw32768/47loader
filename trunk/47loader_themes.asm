@@ -22,9 +22,11 @@
         ;; including the CALL and RET.
         ;;
         ;; Define one of:
+        ;; LOADER_THEME_BRAZIL
         ;; LOADER_THEME_BLEEPLOAD
         ;; LOADER_THEME_CANDY
         ;; LOADER_THEME_CYCLE_VERSA
+        ;; LOADER_THEME_ELIXIRVITAE
         ;; LOADER_THEME_FIRE
         ;; LOADER_THEME_FIRE_RIPPLE
         ;; LOADER_THEME_ICE
