@@ -7,13 +7,13 @@
         ;; border, set_searching_border, set_pilot_border,
         ;; set_data_border
         ;;
-        ;; border does the actual work of placing the border
-        ;; colour into the accumulator.  On entry, carry is
-        ;; set on high edges and clear on low edges
+        ;; border does the actual work of placing the border colour
+        ;; into the accumulator.  On entry, the sign bit of the
+        ;; accumulator is set or clear on alternate edges
         ;;
         ;; set_*_border make any adjustments to the code to set things
-        ;; up for the searching, syncinc/pilot or data borders.  On
-        ;; entry to set_searching_border, carry is set if fast timings
+        ;; up for the searching, syncing/pilot or data borders.  On
+        ;; entry to set_pilot_border, carry is set if fast timings
         ;; are in use and clear if ROM timings are in use
         ;;
         ;; Themes can define a subroutine, .theme_delay, that replaces the
