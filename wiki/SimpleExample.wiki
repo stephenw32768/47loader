@@ -2,6 +2,8 @@
 
 Here are some simple ways of using 47loader.
 
+47loader source must be assembled using Pasmo 0.6.0.  The source is available from the Pasmo website; alternatively, [https://skydrive.live.com/redir?resid=786750D7B39FEA33!238&authkey=!AIyjOk1MHYh-UTo here's a zipfile containing a pre-built executable for Windows].
+
 = The simplest example =
 
 This code uses 47loader to load a screen at 16384, then some code at 49152, then executes the loaded code.  If an error occurs or BREAK/SPACE is pressed, the standard ROM error handlers are used.
@@ -41,7 +43,7 @@ loader:
         include "47loader.asm"
 }}}
 
-Save this into the same directory as the 47loader source files, assemble it with [http://pasmo.speccy.org/ Pasmo] and place it into a TZX file.  Pasmo's --tzx output format is one way of doing this.  Obviously, you will need to change the address and length of the game code block, and perhaps assemble the loader at a different address.
+Save this into the same directory as the 47loader source files, assemble it with [http://pasmo.speccy.org/ Pasmo 0.6.0] and place it into a TZX file.  Pasmo's --tzx output format is one way of doing this.  Obviously, you will need to change the address and length of the game code block, and perhaps assemble the loader at a different address.
 
 To add the 47loader blocks to the output file, use the 47loader-tzx tool.  If your TZX file is called "mygame.tzx", the 6192-byte screen is called "mygame.scr" and the code is in a file called "mygame_code.bin", the commands to use are:
 
