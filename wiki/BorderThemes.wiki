@@ -101,7 +101,7 @@ Themes can define a subroutine, .theme_delay, that replaces the usual 226T delay
         sbc     a,a             ; A=0xFF on high edge, 0 on low edge (4T)
         ;; now, we apply the logic described in the above comments.
         ;; The example values here are the values for the data border,
-        ;; but they will be changes by set_searching_border and
+        ;; but they will be changed by set_searching_border and
         ;; set_data_border to be the colours appropriate for the
         ;; phase that the loader is currently in.
 .colour_mask:equ $+1
