@@ -647,6 +647,74 @@
 
         endif
 
+        ifdef LOADER_THEME_ARGENTINA
+        ;; Searching: black/white
+        ;; Pilot/sync:black/cyan
+        ;; Data:      cyan/white
+
+        macro set_searching_border
+        ;; on alternate edges, we want to flick the border between
+        ;; black and white.  The colour numbers are 0 for black and
+        ;; 7 for white; or, in binary, 000 and 111.
+        ;;
+        ;; So if we can arrange to have the accumulator containing
+        ;; all zeros or all ones on alternate edges, we simply need
+        ;; to mask off the lowest three bits using AND.
+        ld      hl,0x07e6         ; "AND 7" in little-endian format
+        ld      (.border_instr),hl; store the instruction and operand
+        endm
+
+        macro set_pilot_border
+        ;; we keep the AND instruction set for the searching border,
+        ;; but change the mask to 5, for cyan.  So on alternate edges,
+        ;; the accumulator after applying the mask will contain 000
+        ;; or 101 in binary, i.e. 0 or 5.
+        ld      a,5                  ; mask for cyan
+        ld      (.border_mask),a     ; store the new mask
+        endm
+
+        macro set_data_border
+        ;; we keep the cyan mask set for the pilot border, but change
+        ;; the instruction to OR.  So if the accumulator starts off
+        ;; containing all ones, it stays at all ones; the lowest three
+        ;; bits give white.  However, if the accumulator starts off
+        ;; containing all zeros, it gets bits 0 and 2 set, giving
+        ;; cyan.
+        ld      a,0xf6               ; opcode for OR *
+        ld      (.border_instr),a    ; set instruction
+        endm
+
+        ;; the loader expects a theme to run in either 19T or 23T,
+        ;; and we have to declare the time required
+.theme_t_states:equ 23
+        macro border
+        ;; in order for the logic described in the above comments
+        ;; to work, we need the accumulator to contain all zeros or
+        ;; all ones on alternate edges.  At the point that this code
+        ;; is executed, the accumulator's sign bit is 0 or 1 on
+        ;; alternate edges.  It's simple to move this into the
+        ;; carry flag using a rotate instruction, so carry will be
+        ;; either set or clear on alternate edges.  Following that,
+        ;; we can use use SBC A,A to clear the accumulator and then
+        ;; subtract the carry flag from it; so if carry was clear, we
+        ;; finish with the accumulator containing zero; if it was set
+        ;; we finish with it containing -1, aka 255, aka all ones
+        rla                   ; shift EAR bit into carry (4T)
+        sbc     a,a           ; A=0xFF on high edge, 0 on low edge (4T)
+        ;; this is the instruction applying the logic described in
+        ;; the above comments.
+.border_instr:
+.border_mask:equ $ + 1
+        or      5             ; A=0xFF on high edge, 5 on low edge (7T)
+        ;; in the case where we ORed the mask, the accumulator may
+        ;; be left containing all ones.  We need to knock out bit 4
+        ;; in this case or the OUT instruction that sets the border
+        ;; will also set the EAR bit and make more noise than we want
+        res     4,a           ; kill EAR bit (8T)
+        endm
+
+        endif
+
         ifdef LOADER_THEME_CANDY
         ;; Searching: black/magenta
         ;; Pilot/sync:black/yellow; black/white with ROM timings
