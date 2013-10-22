@@ -9,8 +9,9 @@ The label to define to specify a theme is `LOADER_THEME_*`, where `*` is one of 
 = Available themes =
 
 || *Name* || *Searching border* || *Pilot border (fast timings)* || *Pilot border (ROM timings)* || *Data border* || *Notes* ||
+|| ARGENTINA || Black/white || Black/cyan || Black/cyan || Cyan/white || Designed by [http://alessandrogrussu.it/ Alessandro Grussu] for the Spanish edition of his game _[http://www.alessandrogrussu.it/zx/CYF-AR.zip Cronopios y Famas]_. ||
 || BLEEPLOAD || Red/yellow || Red/yellow || Red/yellow || Blue/cyan || The Firebird Bleepload colour scheme. ||
-|| BRAZIL || Blue/white || Blue/white || Blue/white || Green/yellow || Based on the Brazilian flag, as requested by Alessandro Grussu (http://alessandrogrussu.it/) ||
+|| BRAZIL || Blue/white || Blue/white || Blue/white || Green/yellow || Based on the Brazilian flag. Requested by Alessandro Grussu. ||
 || CANDY || Black/magenta || Black/yellow || Black/white || Black/magenta/yellow || Inspired by the purple/yellow candy canes in _Wreck-It Ralph_. ||
 || CYCLE_VERSA || Solid black with fine red lines || Solid black with fine green lines || Solid black with fine white lines || Solid colour, cycling every 256 bytes, with fine black or white lines || Inspired by an effect used by Peter Knight's [https://github.com/going-digital/versaload Versaload]. ||
 || ELIXIRVITAE || Black/magenta || Black/cyan || Black/white || Black/magenta/cyan || Designed to complement _[http://www.worldofspectrum.org/forums/showthread.php?t=45308 Elixir Vitae]_'s loading screen. ||
