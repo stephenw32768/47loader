@@ -1,4 +1,4 @@
-#summary A very simple example of how to use the loader
+#summary A very simple example of how to use the loader.
 
 Here are some simple ways of using 47loader.
 
