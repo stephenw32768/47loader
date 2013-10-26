@@ -9,7 +9,36 @@
         ;; setting LOADER_EXTRA_CYCLES to -2 gives timings 475T/950T
 
         ifndef LOADER_EXTRA_CYCLES
+
+        ;; some friendly aliases for various timings
+        ifdef  LOADER_SPEED_FAST
+LOADER_EXTRA_CYCLES:equ -2
+        endif
+        ifdef  LOADER_SPEED_EAGER
+LOADER_EXTRA_CYCLES:equ -1
+        endif
+        ifdef  LOADER_SPEED_STANDARD
 LOADER_EXTRA_CYCLES:equ 0
+        endif
+        ifdef  LOADER_SPEED_CAUTIOUS
+LOADER_EXTRA_CYCLES:equ 2
+        endif
+        ifdef  LOADER_SPEED_CONSERVATIVE
+LOADER_EXTRA_CYCLES:equ 4
+        endif
+        ifdef  LOADER_SPEED_SPEEDLOCK7
+LOADER_EXTRA_CYCLES:equ 5
+        endif
+        ifdef  LOADER_SPEED_ROM
+        ifndef LOADER_SUPPORT_ROM_TIMINGS
+LOADER_SUPPORT_ROM_TIMINGS:equ 1
+        endif
+        endif
+
+        ;; if none of the above...
+        ifndef LOADER_EXTRA_CYCLES
+LOADER_EXTRA_CYCLES:equ 0
+        endif
         endif
 
         ;; average iterations of sampling loop to detect a
