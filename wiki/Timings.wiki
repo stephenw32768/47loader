@@ -1,4 +1,4 @@
-#summary The different timings supported by 47loader
+#summary The different timings supported by 47loader.
 
 = Introduction =
 
