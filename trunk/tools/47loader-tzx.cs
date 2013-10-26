@@ -155,9 +155,11 @@ namespace FortySevenLoader
       {
          HighLow16 new0 = Pulse.Zero(cycles);
          HighLow16 new1 = Pulse.One(cycles);
+         _blockHeader.PilotPulse = Pulse.Pilot;
          _blockHeader.SyncPulse0 = _blockHeader.ZeroPulse = new0;
          _blockHeader.SyncPulse1 = _blockHeader.OnePulse = new1;
       };
+      string pilot = null;
 
       for (int i = 0; i < args.Length; i++)
       {
@@ -165,6 +167,36 @@ namespace FortySevenLoader
         {
           // we've come to the end of the options, all the rest
           // are files
+
+          if (!string.IsNullOrWhiteSpace(pilot))
+          {
+            checked
+            {
+              HighLow16 pilotPulses;
+              switch (pilot.ToLower())
+              {
+                case "resume":
+                  pilotPulses = TinyPilotPulseCount;
+                  break;
+                case "short":
+                  pilotPulses = 600;
+                  break;
+                case "standard":
+                  pilot = "1000"; // one second
+                  goto default; // fall through
+                default:
+                  int ms = ParseInteger<int>(pilot);
+                  int tstates = ms * TStatesPerMillisecond;
+                  pilotPulses =
+                    (ushort)(tstates / _blockHeader.PilotPulse);
+                  if ((pilotPulses % 2) == 1)
+                    pilotPulses += 1;
+                  break;
+              }
+              _blockHeader.PilotPulseCount = pilotPulses;
+            }
+          }
+
           return args.Skip(i).ToArray();
         }
 
@@ -180,13 +212,10 @@ namespace FortySevenLoader
 
           case "pilot":
             // next arg is pilot length in milliseconds
-            checked
-            {
-              int ms = ParseInteger<int>(args[++i]);
-              int tstates = ms * TStatesPerMillisecond;
-              HighLow16 pilotPulses = (ushort)(tstates / PilotPulse);
-              _blockHeader.PilotPulseCount = pilotPulses;
-            }
+            pilot = args[++i];
+            // defer calculation until end of option parsing in case
+            // ROM timings are requested and we're going to change
+            // the pilot pulse length
             break;
 
           case "pause":
@@ -243,6 +272,8 @@ namespace FortySevenLoader
               _blockHeader.ZeroPulse = Pulse.Rom.Zero;
               _blockHeader.OnePulse = Pulse.Rom.One;
             }
+            // recompute pilot pulse count
+            if (pilot == null) pilot = "standard";
             break;
 
           default:
@@ -271,7 +302,8 @@ Options:
 -output       : name of file to write; if not specified, writes to standard
                 output.  Appends to file if it already exists
 -pause n      : pause n milliseconds after block
--pilot n      : length of pilot in milliseconds
+-pilot n      : length of pilot in milliseconds, or a string:
+                ""standard"", ""short"" or ""resume""
 -progressive n: create a progressively-loaded block with n chunks
 -reverse      : reverse the block
 -speed s      : desired speed, defaults to ""standard""
