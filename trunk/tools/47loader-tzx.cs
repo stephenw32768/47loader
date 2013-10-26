@@ -151,6 +151,14 @@ namespace FortySevenLoader
     // parses options, returns array of file names
     static string[] ParseArguments(string[] args)
     {
+      Action<sbyte> doExtraCycles = delegate(sbyte cycles)
+      {
+         HighLow16 new0 = Pulse.Zero(cycles);
+         HighLow16 new1 = Pulse.One(cycles);
+         _blockHeader.SyncPulse0 = _blockHeader.ZeroPulse = new0;
+         _blockHeader.SyncPulse1 = _blockHeader.OnePulse = new1;
+      };
+
       for (int i = 0; i < args.Length; i++)
       {
         if (args[i].FirstOrDefault() != '-')
@@ -171,7 +179,7 @@ namespace FortySevenLoader
             break;
 
           case "pilot":
-          // next arg is pilot length in milliseconds
+            // next arg is pilot length in milliseconds
             checked
             {
               int ms = ParseInteger<int>(args[++i]);
@@ -182,7 +190,7 @@ namespace FortySevenLoader
             break;
 
           case "pause":
-          // next arg is pause length in milliseconds
+            // next arg is pause length in milliseconds
             checked
             {
               HighLow16 ms = ParseInteger<ushort>(args[++i]);
@@ -192,10 +200,7 @@ namespace FortySevenLoader
 
           case "extracycles":
             sbyte cycles = ParseInteger<sbyte>(args[++i]);
-            HighLow16 new0 = Pulse.Zero(cycles);
-            HighLow16 new1 = Pulse.One(cycles);
-            _blockHeader.SyncPulse0 = _blockHeader.ZeroPulse = new0;
-            _blockHeader.SyncPulse1 = _blockHeader.OnePulse = new1;
+            doExtraCycles(cycles);
             break;
 
           case "instascreen":
@@ -203,7 +208,7 @@ namespace FortySevenLoader
             break;
 
           case "progressive":
-          // next arg is number of progressive chunks
+            // next arg is number of progressive chunks
             checked
             {
               _progressive = ParseInteger<ushort>(args[++i]);
@@ -218,8 +223,30 @@ namespace FortySevenLoader
               _noHeader = true;
             break;
 
+          case "speed":
+            // next arg is a named timing
+            var speedName = args[++i];
+            Timing speed;
+            if (!Enum.TryParse(speedName, true, out speed))
+            {
+              Console.Error.WriteLine("unknown speed \"{0}\"", speedName);
+              goto die;
+            }
+            if (speed != Timing.Rom)
+              doExtraCycles((sbyte)speed);
+            else
+            {
+              // convert block to ROM timings
+              _blockHeader.PilotPulse = Pulse.Rom.Pilot;
+              _blockHeader.SyncPulse0 = Pulse.Rom.Sync0;
+              _blockHeader.SyncPulse1 = Pulse.Rom.Sync1;
+              _blockHeader.ZeroPulse = Pulse.Rom.Zero;
+              _blockHeader.OnePulse = Pulse.Rom.One;
+            }
+            break;
+
           default:
-          // unknown option
+            // unknown option
             Console.Error.WriteLine("Unknown option \"{0}\"", args[i]);
             goto die;
         }
@@ -246,7 +273,22 @@ Options:
 -pause n      : pause n milliseconds after block
 -pilot n      : length of pilot in milliseconds
 -progressive n: create a progressively-loaded block with n chunks
--reverse      : reverse the block");
+-reverse      : reverse the block
+-speed s      : desired speed, defaults to ""standard""
+
+The -speed option is a friendlier way of altering the timings than
+-extracycles.  The available speeds are:
+
+speed        |  corresponds to | timings
+-------------+-----------------+-----------
+fast         | -extracycles -2 | 475T/950T
+eager        | -extracycles -1 | 509T/1018T
+standard     | -extracycles 0  | 543T/1086T
+cautious     | -extracycles 2  | 611T/1222T
+conservative | -extracycles 4  | 679T/1358T
+speedlock7   | -extracycles 5  | 713T/1426T
+rom          |                 | 855T/1710T
+");
       Environment.Exit(1);
     }
 
@@ -268,7 +310,7 @@ Options:
       block.WriteBlock(_tapefile);
     }
 
-  // WriteData implementation for progressive loads
+    // WriteData implementation for progressive loads
     private static void WriteData_Progressive()
     {
       Block block;

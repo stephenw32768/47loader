@@ -28,12 +28,12 @@ namespace FortySevenLoader
       /// <summary>
       /// The length of the second sync pulse in T-states.
       /// </summary>
-      public const ushort Sync1 = 667;
+      public const ushort Sync1 = 735;
 
       /// <summary>
       /// The length of a zero pulse in T-states.
       /// </summary>
-      public const ushort Zero = 735;
+      public const ushort Zero = 855;
 
       /// <summary>
       /// The length of a one sync pulse in T-states.
