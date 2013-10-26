@@ -22,6 +22,7 @@
         ;; including the CALL and RET.
         ;;
         ;; Define one of:
+        ;; LOADER_THEME_ARGENTINA
         ;; LOADER_THEME_BRAZIL
         ;; LOADER_THEME_BLEEPLOAD
         ;; LOADER_THEME_CANDY
@@ -302,7 +303,7 @@
         endm
         macro set_pilot_border
         ld      a,1                   ; blue
-        ifdef   LOADER_TAP_FILE_COMPAT
+        ifdef   LOADER_SUPPORT_ROM_TIMINGS
         jr      c,.pilot_border_fast  ; jump forward if fast timings in use
         ld      a,7                   ; white
 .pilot_border_fast:
@@ -341,7 +342,7 @@
 
         macro set_pilot_border
         ld      a,4                     ; mask for green
-        ifdef   LOADER_TAP_FILE_COMPAT
+        ifdef   LOADER_SUPPORT_ROM_TIMINGS
         jr      c,.pilot_border_fast    ; jump forward if fast timings in use
         ld      a,7                     ; mask for white
 .pilot_border_fast:
@@ -386,7 +387,7 @@
 
         macro set_pilot_border
         ld      a,4                     ; mask for green
-        ifdef   LOADER_TAP_FILE_COMPAT
+        ifdef   LOADER_SUPPORT_ROM_TIMINGS
         jr      c,.pilot_border_fast    ; jump forward if fast timings in use
         ld      a,7                     ; mask for white
 .pilot_border_fast:
@@ -453,7 +454,7 @@
         endm
         macro set_pilot_border
         ld      a,6                  ; yellow
-        ifdef   LOADER_TAP_FILE_COMPAT
+        ifdef   LOADER_SUPPORT_ROM_TIMINGS
         jr      c,.pilot_border_fast ; jump forward if fast timings in use
         ld      a,7                  ; white
         endif
@@ -498,7 +499,7 @@
         endm
         macro set_pilot_border
         ld      a,6                  ; yellow
-        ifdef   LOADER_TAP_FILE_COMPAT
+        ifdef   LOADER_SUPPORT_ROM_TIMINGS
         jr      c,.pilot_border_fast ; jump forward if fast timings in use
         ld      a,7                  ; white
 .pilot_border_fast:
@@ -576,7 +577,7 @@
 
         macro set_pilot_border
         ld      a,6                  ; mask for yellow
-        ifdef   LOADER_TAP_FILE_COMPAT
+        ifdef   LOADER_SUPPORT_ROM_TIMINGS
         jr      c,.pilot_border_fast ; jump forward if fast timings are in use
         ld      a,7                  ; mask for yellow
 .pilot_border_fast:
@@ -623,7 +624,7 @@
         endm
         macro set_pilot_border
         ld      a,4                   ; green
-        ifdef   LOADER_TAP_FILE_COMPAT
+        ifdef   LOADER_SUPPORT_ROM_TIMINGS
         jr      c,.pilot_border_fast  ; jump forward if fast timings in use
         ld      a,7                   ; white
 .pilot_border_fast:
@@ -734,7 +735,7 @@
         endm
         macro set_pilot_border
         ld      a,6                  ; yellow
-        ifdef   LOADER_TAP_FILE_COMPAT
+        ifdef   LOADER_SUPPORT_ROM_TIMINGS
         jr      c,.pilot_border_fast ; jump forward if fast timings in use
         ld      a,7                  ; white
 .pilot_border_fast:
@@ -775,7 +776,7 @@
         endm
         macro set_pilot_border
         ld      a,5                  ; cyan
-        ifdef   LOADER_TAP_FILE_COMPAT
+        ifdef   LOADER_SUPPORT_ROM_TIMINGS
         jr      c,.pilot_border_fast ; jump forward if fast timings in use
         ld      a,7                  ; white
 .pilot_border_fast:
@@ -816,7 +817,7 @@
         endm
         macro set_pilot_border
         ld      a,5                  ; cyan
-        ifdef   LOADER_TAP_FILE_COMPAT
+        ifdef   LOADER_SUPPORT_ROM_TIMINGS
         jr      c,.pilot_border_fast ; jump forward if fast timings in use
         ld      a,7                  ; white
 .pilot_border_fast:
@@ -908,7 +909,7 @@
         endm
         macro set_pilot_border
         ld      a,4                     ; mask for green
-        ifdef   LOADER_TAP_FILE_COMPAT
+        ifdef   LOADER_SUPPORT_ROM_TIMINGS
         jr      c,.pilot_border_fast    ; jump forward if fast timings in use
         ld      a,7                     ; mask for white
 .pilot_border_fast:
@@ -963,7 +964,7 @@
         endm
         macro set_pilot_border
         ld      a,12                   ; green lines (with sound bit)
-        ifdef   LOADER_TAP_FILE_COMPAT
+        ifdef   LOADER_SUPPORT_ROM_TIMINGS
         jr      c,.pilot_border_fast   ; jump forward if fast timings in use
         or      7                      ; white lines
 .pilot_border_fast:

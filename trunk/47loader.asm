@@ -29,9 +29,9 @@ LOADER_IGNORE_BREAK:equ 1
         ;;    so far.
         ;;    During data loading, the current byte being read
         ;; DE:number of bytes remaining to be read.  "Borrowed" during
-        ;;    searching if LOADER_TAP_FILE_COMPAT is set for adding
+        ;;    searching if LOADER_SUPPORT_ROM_TIMINGS is set for adding
         ;;    to the running total using ADD HL,DE
-        ;; HL:during searching, if LOADER_TAP_FILE_COMPAT is set, a
+        ;; HL:during searching, if LOADER_SUPPORT_ROM_TIMINGS is set, a
         ;;    running total of the values returned by .read_edge for
         ;;    each pilot pulse found.
         ;;    During data loading, the Fletcher-16 checksum.
@@ -46,20 +46,20 @@ loader_entry:
         ;; and so begins the "searching" phase.  Start by
         ;; setting up the environment
 .loader_init:
-        ifdef   LOADER_TAP_FILE_COMPAT
+        ifdef   LOADER_SUPPORT_ROM_TIMINGS
         push    de              ; save data length
         endif
 .loader_start_search:
         xor     a               ; clear accumulator
         ld      c,a             ; initialize pilot pulse counter
-        ifdef   LOADER_TAP_FILE_COMPAT
+        ifdef   LOADER_SUPPORT_ROM_TIMINGS
         ld      d,a             ; knock out high byte of DE
         endif
         set_searching_border
 
         ;; now we are ready to start looking for pilot pulses
         di
-        ifdef   LOADER_TAP_FILE_COMPAT
+        ifdef   LOADER_SUPPORT_ROM_TIMINGS
         ld      h,c             ; initialize pulse counter sum
         ld      l,c
         endif
@@ -74,14 +74,14 @@ loader_entry:
         ;; for the loop starting value
         cp      (2 * .pilot_pulse_min)+.timing_constant_pilot
         jr      c,.loader_start_search; too few, not a pilot pulse, so restart
-        ifdef   LOADER_TAP_FILE_COMPAT
+        ifdef   LOADER_SUPPORT_ROM_TIMINGS
         ld      e,b             ; DE=loop counter
         add     hl,de           ; add to running total
         endif
         dec     c               ; we have found a pilot pulse
         jr      nz,.detect_pilot_pulse; look for another pulse if count not hit
 
-        ifdef   LOADER_TAP_FILE_COMPAT
+        ifdef   LOADER_SUPPORT_ROM_TIMINGS
         ;; at this point, HL contains the sum of the return values
         ;; from .read_edge for 256 pilot pulses; therefore H contains
         ;; a rough average of the cycle count for a single pilot pulse
