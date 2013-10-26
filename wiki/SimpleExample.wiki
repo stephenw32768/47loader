@@ -58,10 +58,10 @@ For aesthetic reasons, you might like the game block to have a much shorter pilo
 
 {{{
 47loader-tzx -output mygame.tzx -pause 100 mygame.scr
-47loader-tzx -output mygame.tzx -pilot 300 mygame.bin
+47loader-tzx -output mygame.tzx -pilot short mygame.bin
 }}}
 
-This variation reduces the pause after the screen to a tenth of a second, and reduces the length of the second block's pilot tone to three-tenths of a second.
+This variation reduces the pause after the screen to a tenth of a second, and reduces the length of the second block's pilot tone to approximately three-tenths of a second.
 
 = A backwards-loading screen =
 
@@ -119,5 +119,5 @@ Or, if you like the really short pilot tone for the second block from the first 
 
 {{{
 47loader-tzx -output mygame.tzx -pause 100 -reverse mygame.scr
-47loader-tzx -output mygame.tzx -pilot 300 mygame.bin
+47loader-tzx -output mygame.tzx -pilot short mygame.bin
 }}}
