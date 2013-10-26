@@ -4,8 +4,9 @@
 # See LICENSE for distribution terms
 
 prefix="simple-demo"
+speed="CAUTIOUS"
 
-pasmo $prefix.asm $prefix.bin
+pasmo -E LOADER_SPEED_${speed}=1 $prefix.asm $prefix.bin
 
 # construct the BASIC loader with assembled binary embedded
 mono >$prefix.tzx ../../tools/47loader-bootstrap.exe \
@@ -13,4 +14,5 @@ mono >$prefix.tzx ../../tools/47loader-bootstrap.exe \
 
 # add the demo screen
 mono >>$prefix.tzx ../../tools/47loader-tzx.exe \
+  -speed $speed \
   =(cat ../../assets/penrose_pixmap.bin ../../assets/penrose_attrs.bin)
