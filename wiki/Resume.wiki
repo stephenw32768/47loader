@@ -2,7 +2,7 @@
 
 = Introduction =
 
-47loader permits blocks to be glued together with tiny pilots.  You can use this feature to load a screen, then move straight into loading the game without perceptible gap.
+47loader permits blocks to be glued together with tiny pilots.  You can use this feature to load a screen, then move straight into loading the game without a perceptible gap.
 
 This feature is called "resume".
 
@@ -47,3 +47,16 @@ error_exit:
 
         include "47loader.asm"
 }}}
+
+= Making a tape file =
+
+Here are the 47loader-tzx commands that make a tape file that will work with the above example:
+
+{{{
+47loader-tzx -output mygame.tzx -pause 0 mygame.scr
+47loader-tzx -output mygame.tzx -pilot resume mygame.bin
+}}}
+
+The first command adds the screen to the tape file with no pause afterwards.  The second command adds the game that will be loaded with `loader_resume`. The length of the pilot tone is made as short as possible.
+
+When using "resume", you *must* write the preceding block using -pause 0. If `loader_resume` does not find a pulse immediately, it raises a loading error.
