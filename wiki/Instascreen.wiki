@@ -37,6 +37,8 @@ LOADER_INSTASCREEN_ATTR_ADDRESS:equ 49152
         ;; fill the screen bright blue while loading
 LOADER_INSTASCREEN_FILL_COLOUR:equ 1
 LOADER_INSTASCREEN_FILL_BRIGHT:equ 1
+        ;; required by both "instascreen" and our own code
+LOADER_RESUME:equ 1
 
         ;; place the loader into uncontended memory
         org     32768
