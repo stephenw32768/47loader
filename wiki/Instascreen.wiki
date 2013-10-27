@@ -1,0 +1,66 @@
+#summary A loading screen that pops up instantly.
+
+= Introduction =
+
+47loader provides an optional module called "instascreen".  This module loads pixmap data directly into the video RAM, then uses resume to load the attribute data into high memory, then uses LDIR to blit the attributes into the video RAM, resulting in a loading screen that pops up in an instant.  You can then use "resume" to load your game without a gap; the overall effect is similar to the Speedlock loading screens.
+
+= Using instascreen in your code =
+
+== Bringing in the module ==
+The "instascreen" module is in a separate source file, `47loader_instascreen.asm`, that you must include.
+
+== Symbols that you must define ==
+
+Because it uses "resume", you must define `LOADER_RESUME`.
+
+"Instascreen" is configured using three symbols, one of which is mandatory.
+
+  # `LOADER_INSTASCREEN_ATTR_ADDRESS`: set this to an address in uncontended memory at which the attributes are to be loaded.  768 bytes are required starting at the specified address.  This setting is mandatory.
+  # `LOADER_INSTASCREEN_FILL_COLOUR`: by default, "instascreen" sets the screen attributes to black on black before loading the pixmap.  If you would prefer a different colours, set this symbol to the number of the colour that you want.
+  # `LOADER_INSTASCREEN_FILL_BRIGHT`: define this symbol if you want the colour defined by `LOADER_INSTASCREEN_FILL_COLOUR` to be bright.
+
+== Simple example ==
+
+This example uses "instascreen" to set the screen to bright blue, then loads a screen using 768 bytes starting from 49152 as temporary space for the attributes.  After the screen has loaded, "resume" is used to load the game with no perceptible gap.
+
+{{{
+        ;; this is the border theme to use.  A full list of the
+        ;; available themes is on the Wiki:
+        ;; https://code.google.com/p/47loader/wiki/BorderThemes
+LOADER_THEME_RAINBOW:equ 1
+        ;; use 768 bytes starting at 49152 as scratch space for attrs
+
+
+        ;; place the loader into uncontended memory
+        org     32768
+
+        ;; load a screen directly into the video RAM
+        ld      ix,16384
+        ld      de,6912
+        call    loader
+
+        ;; load 8144 bytes at address 49152
+        ld      ix,49152
+        ld      de,8144
+        call    loader
+
+        ;; jump to the code we just loaded
+        jp      49152
+
+loader:
+        ;; call the loader proper
+        call    loader_entry
+        ;; carry set means success
+        ret     c
+        ;; if failed, drop into error handler
+        include "47loader_error_handler.asm"
+
+        include "47loader.asm"
+}}}
+
+= Details =
+
+Add your content here.  Format your content with:
+  * Text in *bold* or _italic_
+  * Headings, paragraphs, and lists
+  * Automatic links to other wiki pages
