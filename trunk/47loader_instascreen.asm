@@ -1,30 +1,53 @@
         ;; 47loader (c) Stephen Williams 2013
         ;; See LICENSE for distribution terms
 
-        ;; This macro loads a pixmap into the display file, attributes
+        ;; This routine loads a pixmap into the display file, attributes
         ;; into high memory, then LDIRs the attributes onto the screen
         ;; while reading edges.  The loader can then resume to load the
         ;; game with no pause; the effect is a Speedlock-style instant
         ;; loading screen.
         ;;
-        ;; The macro arguments are:
-        ;; 1/ an address in high memory to which to load the attributes;
-        ;; 2/ the address to which to jump if loading fails.
+        ;; The routine assumes forwards loading.
         ;;
-        ;; The macro assumes forwards loading.
+        ;; Define:
+        ;; 
+        ;; LOADER_INSTASCREEN_ATTR_ADDRESS:
+        ;; address in uncontended memory to which to load the attrs
+        ;;
+        ;; LOADER_INSTASCREEN_FILL_COLOUR:
+        ;; 0-7, number of colour with which to fill the screen.  If
+        ;; not defined, defaults to 0.
+        ;;
+        ;; LOADER_INSTASCREEN_FILL_BRIGHT:
+        ;; if set, the colour specified by LOADER_INSTASCREEN_FILL_COLOUR
+        ;; is made bright.
 
         if      LOADER_INSTASCREEN_ATTR_ADDRESS < 32768
         .error  Load attributes into uncontended memory
         endif
-        ifdef   LOADER_TAP_FILE_COMPAT
-        ;.error  Instascreen cannot work in TAP files
+
+        ifdef   LOADER_INSTASCREEN_FILL_COLOUR
+        if      LOADER_INSTASCREEN_FILL_COLOUR % 8 != 0
+        ;; fill colour is not black; set paper and ink colour
+        ;; to be the same
+.instascreen_colour:defl LOADER_INSTASCREEN_FILL_COLOUR % 8
+.instascreen_colour:defl .instascreen_colour | (.instascreen_colour << 3)
+        ifdef LOADER_INSTASCREEN_FILL_BRIGHT
+.instascreen_colour:defl .instascreen_colour | 64
+        endif
+        endif
         endif
 
 loader_instascreen:
-        ;; clear border attributes
-        ld      hl,0x5800
-        ld      de,0x5b00 - 64
-        ld      bc,64
+        ;; clear attributes
+        ld      hl,0x5800               ; address of first attr
+        ifdef   .instascreen_colour
+        ld      (hl),.instascreen_colour; attr to fill screen
+        else
+        ld      (hl),l                  ; L = 0; fill screen with black
+        endif
+        ld      de,0x5801
+        ld      bc,767
         ldir
 
         ;; load pixmap directly into screen
