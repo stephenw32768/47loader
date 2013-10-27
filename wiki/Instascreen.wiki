@@ -8,10 +8,10 @@
   # then uses LDIR to blit the attributes into the video RAM, resulting in a loading screen that pops up in an instant.
 You can then use "resume" to load your game without a gap; the overall effect is similar to the Speedlock loading screens.
 
-= Using instascreen in your code =
+= Using "instascreen" in your code =
 
 == Bringing in the module ==
-The "instascreen" module is in a separate source file, `47loader_instascreen.asm`, that you must include.
+The "instascreen" module is in a separate source file, `47loader_instascreen.asm`, that you must include.  It defines an entry point, `loader_instascreen`; this is the routine to call.
 
 == Symbols that you must define ==
 
