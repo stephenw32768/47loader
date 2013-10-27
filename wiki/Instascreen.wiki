@@ -15,7 +15,7 @@ The "instascreen" module is in a separate source file, `47loader_instascreen.asm
 
 == Symbols that you must define ==
 
-Because it uses "resume", you must define `LOADER_RESUME`.
+Because "instascreen" uses "resume" to load the attributes, you must define `LOADER_RESUME`.
 
 "Instascreen" is configured using three symbols, one of which is mandatory.
 
