@@ -18,10 +18,41 @@ public static class FortySevenLoaderBootstrap
   // options
   static string _progName = string.Empty;
   static int _border = -1, _paper = -1, _ink = -1, _bright = -1, _clear;
+  static string _inputFileName, _outputFileName;
   static int _pause = -1;
   static List<string> _printTop = new List<string>();
   static List<string> _printBottom = new List<string>();
   static List<Tuple<ushort, ushort>> _usr = new List<Tuple<ushort, ushort>>();
+
+  // opens the input file or stream
+  static Stream OpenInput()
+  {
+    if (string.IsNullOrWhiteSpace(_inputFileName))
+      return Console.OpenStandardInput();
+
+    try
+    {
+      var str = File.Open(_inputFileName, FileMode.Open);
+      return str;
+    }
+    catch (IOException e)
+    {
+      Console.Error.WriteLine(e.Message);
+      Environment.Exit(1);
+      return null;
+    }
+  }
+
+  // opens the output file or stream
+  static Stream OpenOutput()
+  {
+    if (string.IsNullOrWhiteSpace(_outputFileName))
+      return Console.OpenStandardOutput();
+
+    var str = File.Open(_outputFileName, FileMode.OpenOrCreate);
+    str.Seek(0, SeekOrigin.End);
+    return str;
+  }
 
   // parses string into integer
   static T ParseInteger<T>(string s)
@@ -36,61 +67,82 @@ public static class FortySevenLoaderBootstrap
     }
   }
 
-  static void ParseArguments(string[] args) {
-    for (int i = 0; i < args.Length; i++) {
+  static void ParseArguments(string[] args)
+  {
+    for (int i = 0; i < args.Length; i++)
+    {
+      if (args[i].FirstOrDefault() != '-')
+      {
+        // we've come to the end of the options
+        if (i < (args.Length - 1))
+        {
+          // more than one remaining argument
+          Die();
+          return;
+        }
 
-      switch (args[i].TrimStart('-')) {
-      case "border":
-        _border = ParseInteger<int>(args[++i]);
-        break;
-      case "paper":
-        _paper = ParseInteger<int>(args[++i]);
-        break;
-      case "ink":
-        _ink = ParseInteger<int>(args[++i]);
-        break;
-      case "bright":
-        _bright = ParseInteger<int>(args[++i]);
-        break;
-      case "clear":
-        _clear = ParseInteger<int>(args[++i]);
-        break;
-      case "name":
-        _progName = args[++i];
-        if (_progName.Length > 10)
-          _progName = _progName.Substring(0, 10);
-        break;
-      case "usr":
-        var addresses = args[++i].Split(':');
-        ushort clear = 0, usr = 0;
-        switch (addresses.Length) {
-        case 1:
-          usr = ParseInteger<ushort>(addresses[0]);
+        _inputFileName = args[i];
+        return;
+      }
+
+      switch (args[i].TrimStart('-'))
+      {
+        case "output":
+            // next arg is name of file to which to write
+          _outputFileName = args[++i];
           break;
-        case 2:
-          clear = ParseInteger<ushort>(addresses[0]);
-          usr = ParseInteger<ushort>(addresses[1]);
+        case "border":
+          _border = ParseInteger<int>(args[++i]);
+          break;
+        case "paper":
+          _paper = ParseInteger<int>(args[++i]);
+          break;
+        case "ink":
+          _ink = ParseInteger<int>(args[++i]);
+          break;
+        case "bright":
+          _bright = ParseInteger<int>(args[++i]);
+          break;
+        case "clear":
+          _clear = ParseInteger<int>(args[++i]);
+          break;
+        case "name":
+          _progName = args[++i];
+          if (_progName.Length > 10)
+            _progName = _progName.Substring(0, 10);
+          break;
+        case "usr":
+          var addresses = args[++i].Split(':');
+          ushort clear = 0, usr = 0;
+          switch (addresses.Length)
+          {
+            case 1:
+              usr = ParseInteger<ushort>(addresses[0]);
+              break;
+            case 2:
+              clear = ParseInteger<ushort>(addresses[0]);
+              usr = ParseInteger<ushort>(addresses[1]);
+              break;
+            default:
+              Die();
+              break;
+          }
+          _usr.Add(Tuple.Create(clear, usr));
+          break;
+        case "pause":
+          _pause = ParseInteger<int>(args[++i]);
+          break;
+        case "top":
+          _printTop.Add(args[++i]);
+          break;
+        case "bottom":
+          _printBottom.Add(args[++i]);
           break;
         default:
+        // unknown option
+          Console.Error.WriteLine("Unknown option \"{0}\"", args[i]);
           Die();
           break;
-        }
-        _usr.Add(Tuple.Create(clear, usr));
-        break;
-      case "pause":
-        _pause = ParseInteger<int>(args[++i]);
-        break;
-      case "top":
-        _printTop.Add(args[++i]);
-        break;
-      case "bottom":
-        _printBottom.Add(args[++i]);
-        break;
-      default:
-        // unknown option
-        Console.Error.WriteLine("Unknown option \"{0}\"", args[i]);
-        Die();
-        break;
       }
     }
   }
@@ -98,29 +150,30 @@ public static class FortySevenLoaderBootstrap
   // prints usage and exists unsuccessfully
   static void Die()
   {
-    Console.Error.WriteLine(@"Usage: 47loader-bootstrap [options]
-Reads binary to embed from standard input
-Writes tape files to standard output
+    Console.Error.WriteLine(@"Usage: 47loader-bootstrap [options] [binary]
+Reads binary to embed from standard input if not specified
 
 Options:
--name s:   BASIC program name
--clear n:  CLEAR address
--border n: border colour
--paper n:  paper colour
--ink n:    ink colour
--bright n: bright attribute
--pause n:  PAUSE to perform after loading
--top s:    string to print at the top of the screen
--bottom s: string to print at the bottom of the screen
--usr [c:]n:address to jump to after loading, optionally CLEARing to
-           address c first");
+-border n : border colour
+-bottom s : string to print at the bottom of the screen
+-bright n : bright attribute
+-clear n  : CLEAR address
+-ink n    : ink colour
+-name s   : BASIC program name
+-output   : name of file to write; if not specified, writes to standard
+            output.  Appends to file if it already exists
+-paper n  : paper colour
+-pause n  : PAUSE to perform after loading
+-top s    : string to print at the top of the screen
+-usr [c:]n: address to jump to after loading, optionally CLEARing to
+            address c first");
     Environment.Exit(1);
   }
 
   // writes the TZX file to standard output
   static void WriteTzx()
   {
-    using (var output = Console.OpenStandardOutput()) {
+    using (var output = OpenOutput()) {
       FortySevenLoader.Tzx.FileHeader.Standard.Write(output);
       output.WriteByte(0x10); // standard speed block
       output.WriteByte(0); // two-byte pause length, 0ms
@@ -218,7 +271,7 @@ Options:
       }
 
       // read data to embed
-      using (var input = Console.OpenStandardInput()) {
+      using (var input = OpenInput()) {
         int b;
         while ((b = input.ReadByte()) >= 0)
           _data.Add((byte)b);
