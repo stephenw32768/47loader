@@ -158,7 +158,7 @@ loader:
 
 = Producing a TZX file =
 
-The 47loader-bootstrap tool can be used to embed the assembled loader into a BASIC program.  Here are some example command lines that together construct a TZX file containing the loader, screen and game for the above examples, assuming that the loader has been assembled into a file called "myloader.bin":
+The [https://code.google.com/p/47loader/source/browse/#svn%2Ftrunk%2Ftools 47loader-bootstrap tool] can be used to embed the assembled loader into a BASIC program.  Here are some example command lines that together construct a TZX file containing the loader, screen and game for the above examples, assuming that the loader has been assembled into a file called "myloader.bin":
 
 {{{
 47loader-bootstrap -clear 32767 -ink 7 -paper 0 -border 0 -name MYGAME -output mygame.tzx myloader.bin
