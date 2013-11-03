@@ -168,4 +168,4 @@ The [https://code.google.com/p/47loader/source/browse/#svn%2Ftrunk%2Ftools 47loa
 
 The above invocation of 47loader-bootstrap generates a BASIC loader with filename "MYGAME" that sets black border and paper, white ink, CLEARs to 32767 and then executes the loader.
 
-You can of course embed loaders using any of the extra features such as [Instascreen instascreen].  (Because instascreen also sets the screen colours, you might omit the -border, -paper and -ink options if you are using that).
+You can of course embed loaders using any of the extra features such as [Instascreen "instascreen"].  (Because "instascreen" also sets the screen colours, you might omit the -border, -paper and -ink options if you are using that).
