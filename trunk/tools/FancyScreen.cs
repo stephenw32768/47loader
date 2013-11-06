@@ -86,6 +86,18 @@ namespace FortySevenLoader
     };
 
     /// <summary>
+    /// Table defining a screen load with a backwards pixmap followed by
+    /// forwards attributes.
+    /// </summary>
+    internal static readonly DynamicTable RP_FA = new DynamicTable
+    {
+      // change direction and load the pixmap
+      new DynamicTable.Entry(0x57ff, 6144, true),
+      // change direction and load the attributes
+      new DynamicTable.Entry(0x5800, 768, true)
+    };
+
+    /// <summary>
     /// Table defining a screen load with a forwards pixmap
     /// followed by backwards attributes.
     /// </summary>
