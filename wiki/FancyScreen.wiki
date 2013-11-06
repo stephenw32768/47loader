@@ -39,4 +39,12 @@ When you use `-fancyscreen`, 47loader-tzx reports the length of the table contai
 
 = Writing the loader =
 
+Fancy screens are loaded using a module called "dynamic" that exports an entry point, `loader_dynamic`.
+
+As described above, `-fancyscreen` instructs 47loader-tzx to output a block containing a table describing the blocks that comprise the screen.  You must define the symbol LOADER_DYNAMIC_TABLE_ADDR; its value is the memory address at which the table will be loaded.  There must be enough free memory at this address to store the number of bytes reported by 47loader-tzx.
+
+Because fancy screens generally involve one or more changes of load direction, it is possible that the loader will be left pointing backwards after the screen has loaded.  The table above indicates which fancy effects this applies to.  Following a fancy screen load, you probably want to load the game forwards, so you must include a call to `loader_change_direction` before loading the game.
+
+Here is an example of a loader that will be embedded in a BASIC REM statement.  It uses the "dynamic" module to load the fancy screen, then loads the game using "resume".
+
 TODO
