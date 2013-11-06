@@ -1,1 +1,0 @@
-../../47loader_simple_basic_embed_top.asm
