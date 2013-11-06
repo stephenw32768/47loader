@@ -10,10 +10,10 @@ You can use 47loader-tzx's `-fancyscreen` option to specify a fancy screen load.
 
 || *`-fancyscreen` argument* || *Effect* || *Loader direction after the load is complete* ||
 
+|| `bidi_acp` || Attributes that start at the top and bottom and converge in the centre, then a bidirectional pixmap load. || Backwards ||
+|| `bidi_ap` || Bidirectional screen load, attributes first. || Backwards ||
 || `bidi_pa` || Bidirectional screen load, pixmap first. || Backwards ||
 || `bidi_pac` || Bidirectional pixmap load followed by attributes that start at the top and bottom and converge in the centre. || Backwards ||
-|| `bidi_ap` || Bidirectional screen load, attributes first. || Backwards ||
-|| `bidi_acp` || Attributes that start at the top and bottom and converge in the centre, then a bidirectional pixmap load. || Backwards ||
 || `btt_fa` || Loads the pixmap bottom-to-top instead of in thirds, then the attributes forwards. || Forwards ||
 || `btt_ra` || Loads the pixmap bottom-to-top instead of in thirds, then the attributes backwards. || Backwards ||
 || `fa_btt` || Loads the attributes forwards, then the pixmap bottom-to-top instead of in thirds. || Backwards ||
