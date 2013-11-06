@@ -41,10 +41,58 @@ When you use `-fancyscreen`, 47loader-tzx reports the length of the table contai
 
 Fancy screens are loaded using a module called "dynamic" that exports an entry point, `loader_dynamic`.
 
-As described above, `-fancyscreen` instructs 47loader-tzx to output a block containing a table describing the blocks that comprise the screen.  You must define the symbol LOADER_DYNAMIC_TABLE_ADDR; its value is the memory address at which the table will be loaded.  There must be enough free memory at this address to store the number of bytes reported by 47loader-tzx.
+As described above, `-fancyscreen` instructs 47loader-tzx to output a block containing a table describing the blocks that comprise the screen.  You must define the symbol LOADER_DYNAMIC_TABLE_ADDR; its value is the memory address at which the table will be loaded.  There must be enough free memory at this address to store the number of bytes reported by 47loader-tzx.  You must also define LOADER_RESUME and LOADER_CHANGE_DIRECTION because "dynamic" requires both of these options.
 
 Because fancy screens generally involve one or more changes of load direction, it is possible that the loader will be left pointing backwards after the screen has loaded.  The table above indicates which fancy effects this applies to.  Following a fancy screen load, you probably want to load the game forwards, so you must include a call to `loader_change_direction` before loading the game.
 
 Here is an example of a loader that will be embedded in a BASIC REM statement.  It uses the "dynamic" module to load the fancy screen, then loads the game using "resume".
 
-TODO
+{{{
+;;; relocate the loader to this address
+LOADER_ABSOLUTE_ADDR:       equ     32768
+        include "47loader_simple_basic_embed_top.asm"
+
+;;;  this is the border theme to use.  A full list of the
+;;;  available themes is on the Wiki:
+;;;  https://code.google.com/p/47loader/wiki/BorderThemes
+LOADER_THEME_RAINBOW:   equ 1
+
+;;; this is the address at which the dynamic table will be
+;;; loaded.  It happens to be the same address at which the
+;;; game is to be loaded; once the screen in place, the table
+;;; is not required any more
+LOADER_DYNAMIC_TABLE_ADDR:equ 49152
+
+;;; loader_dynamic requires the following options
+LOADER_RESUME:equ 1
+LOADER_CHANGE_DIRECTION:equ 1
+
+        ;; loading the screen is a simple as just calling
+        ;; loader_dynamic
+        call    loader_dynamic
+        ;; as with all 47loader entry points, the carry flag
+        ;; is set if the load succeeded
+        jr      nc,.err
+
+        ;; the -fancyscreen option passed to 47loader-tzx in the
+        ;; previous section specified the fp_ra effect.  This
+        ;; effect leaves the loader pointing backwards, so we
+        ;; need to change direction before loading the game
+        call    loader_change_direction
+
+        ;; load 8144 bytes at address 49152 using "resume"
+        ld      ix,49152
+        ld      de,8144
+        call    loader_resume
+
+        ;; if the load succeeded, jump to the game, otherwise
+        ;; fall through to the error handler
+        jp      c,49152
+
+.err:
+        include "47loader_error_handler.asm"
+        include "47loader.asm"
+        include "47loader_dynamic.asm"
+
+        include "47loader_simple_basic_embed_bottom.asm"
+}}}
