@@ -1,8 +1,19 @@
 #summary Unusual screen-loading routines.
 
-TODO
-
 = Introduction =
+
+The 47loader-tzx tool can produce screens that load in unusual ways.  Such screens can be loaded by 47loader using an optional module, "dynamic". This module reads a table of block addresses, lengths and directions, then uses "resume" to load them in sequence.
+
+= Creating a tape file =
+
+You can use 47loader-tzx's `-fancyscreen` option to specify a fancy screen load.  The option takes as an argument one of the following:
+
+|| *`-fancyscreen` argument* || *Effect* || *Loader direction after the load is complete* ||
+|| `fa_rp` || Loads the attributes forwards, then the pixmap backwards. || Backwards ||
+|| `fp_ra` || Loads the pixmap forwards, then the attributes backwards. || Backwards ||
+|| `ra_fp` || Loads the attributes backwards, then the pixmap forwards. || Forwards ||
+|| `ttb_fa` || Loads the pixmap top-to-bottom instead of in thirds, then the attributes forwards. || Forwards ||
+|| `ttb_ra` || Loads the pixmap top-to-bottom instead of in thirds, then the attributes backwards. || Backwards ||
 
 Add your content here.
 
