@@ -9,7 +9,6 @@ The 47loader-tzx tool can produce screens that load in unusual ways.  Such scree
 You can use 47loader-tzx's `-fancyscreen` option to specify a fancy screen load.  The option takes as an argument one of the following:
 
 || *`-fancyscreen` argument* || *Effect* || *Loader direction after the load is complete* ||
-
 || `bidi_acp` || Attributes that start at the top and bottom and converge in the centre, then a bidirectional pixmap load. || Backwards ||
 || `bidi_ap` || Bidirectional screen load, attributes first. || Backwards ||
 || `bidi_pa` || Bidirectional screen load, pixmap first. || Backwards ||
