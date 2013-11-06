@@ -41,6 +41,8 @@
     <Compile Include="Basic\Token.cs" />
     <Compile Include="Basic\BasicLine.cs" />
     <Compile Include="Timing.cs" />
+    <Compile Include="DynamicTable.cs" />
+    <Compile Include="Block.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

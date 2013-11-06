@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 
 using BlockHeader = FortySevenLoader.Tzx.TurboBlockHeader;
@@ -17,104 +18,19 @@ namespace FortySevenLoader
 /// </summary>
   public static class FortySevenLoaderTzx
   {
-    // 47loader data block
-    private sealed class Block
-    {
-      private readonly BlockHeader _blockHeader;
-      private readonly List<byte> _data = new List<byte>();
-
-      internal Block(BlockHeader header, IEnumerable<byte> rawData)
-      {
-        _blockHeader = header;
-        _data.AddRange(rawData);
-      }
-
-    // Computes a Fletcher-16 checksum for _data.  H and L are
-    // the starting values of the low byte (modular sum of each
-    // data byte) and high byte (modular sum of each data byte
-      // and the low byte of the checksum)
-      void ComputeChecksum(ref byte h, ref byte l)
-      {
-        foreach (byte b in _data) {
-          byte prev = l;
-          l += b;
-          if (prev > l)
-            // overflowed; increment to simulate mod 255
-            l++;
-          prev = h;
-          h += l;
-          if (prev > h)
-            h++;
-        }
-      }
-
-      internal BlockHeader BlockHeader { get { return _blockHeader; } }
-
-      internal void WriteBlock(Stream tapefile)
-      {
-        byte[] block;
-
-        // toggle bits 4 and 7 of the entire block
-        for (int i = 0; i < _data.Count; i++)
-          _data[i] ^= 0x90;
-
-        // calculate Fletcher16 checksum
-        byte h = 0, l = 0, start_h, start_l;
-        ComputeChecksum(ref h, ref l);
-        start_l = l = (byte)(-l - 1);
-          // rerun to determine correct starting value for H,
-        // given the just-determined starting value for L
-        h = 0;
-        ComputeChecksum(ref h, ref l);
-        start_h = h = (byte)(-h - 1);
-        // so running the checksum with those starting values
-        // should gives us 0xFFFF
-        l = start_l;
-        ComputeChecksum(ref h, ref l);
-        Debug.Assert(l == 0xff, "expected l == 255 but got " + l);
-        Debug.Assert(h == 0xff, "expected h == 255 but got " + h);
-
-        // include checksum in data block.  LSB comes first
-        _data.Insert(0, start_h);
-        _data.Insert(0, start_l);
-
-        // include sanity byte in block
-        _data.Insert(0, _sanity);
-      
-        // write block header
-        //if (includePilot)
-        var blockHeader = _blockHeader.ToArray();
-        tapefile.Write(blockHeader, 0, blockHeader.Length);
-        //else
-        //   _tapefile.Write(_pureDataBlockHeader, 0, _pureDataBlockHeader.Length);
-        // write block length
-        block = _data.ToArray();
-        tapefile.WriteByte((byte)(block.Length & 255));
-        tapefile.WriteByte((byte)((block.Length >> 8) & 255));
-        tapefile.WriteByte((byte)((block.Length >> 16) & 255));
-        // write block data
-        tapefile.Write(block, 0, block.Length);
-      }
-    }
-
-    private const int TStatesPerMillisecond = 3500;
+    internal const int TStatesPerMillisecond = 3500;
 
     // pulse lengths, notionally constant
-    private static readonly HighLow16 ZeroPulse =// new HighLow16(543);
-      Pulse.Zero();
-    private static readonly HighLow16 OnePulse = //new HighLow16(1086);
-      Pulse.One();
-    private static readonly HighLow16 PilotPulse = //new HighLow16(1710);
-      Pulse.Pilot;
+    internal static readonly HighLow16 ZeroPulse = Pulse.Zero();
+    internal static readonly HighLow16 OnePulse = Pulse.One();
+    internal static readonly HighLow16 PilotPulse = Pulse.Pilot;
 
-    private static readonly HighLow16 PilotPulseCount =
+    internal static readonly HighLow16 PilotPulseCount =
       (ushort)(1000 * TStatesPerMillisecond / PilotPulse);
     // this is used for embedding tiny pilots for instascreen and
     // progressive loading
-    private static readonly HighLow16 TinyPilotPulseCount = new HighLow16(2);
+    internal static readonly HighLow16 TinyPilotPulseCount = new HighLow16(2);
 
-    private static readonly byte _sanity =
-      Convert.ToByte("10110010", 2);
     private static readonly List<byte> _data = new List<byte>();
 
     private static readonly BlockHeader _blockHeader = new BlockHeader {
@@ -134,6 +50,7 @@ namespace FortySevenLoader
     private static string _outputFileName;
     private static ushort _progressive;
     private static Action WriteData = WriteData_Simple;
+    private static DynamicTable _dynamicTable;
 
     // parses string into integer
     static T ParseInteger<T>(string s)
@@ -236,6 +153,26 @@ namespace FortySevenLoader
             WriteData = WriteData_Instascreen;
             break;
 
+          case "fancyscreen":
+            // next arg is a fancy screen load type; one of the fields
+            // in the FancyScreen class
+            var loadTypeName = args[++i];
+            _dynamicTable = (from field in typeof(FancyScreen).GetFields
+                             (BindingFlags.Static | BindingFlags.NonPublic)
+                             where field.FieldType == typeof(DynamicTable)
+                             where field.Name.Equals(loadTypeName,
+                                  StringComparison.OrdinalIgnoreCase)
+                             select (DynamicTable)field.GetValue(null))
+              .FirstOrDefault();
+            if (_dynamicTable == null)
+            {
+              Console.Error.WriteLine
+                ("unknown fancy screen type \"{0}\"", loadTypeName);
+              goto die;
+            }
+            WriteData = WriteData_FancyScreen;
+            break;
+
           case "progressive":
             // next arg is number of progressive chunks
             checked
@@ -295,6 +232,8 @@ namespace FortySevenLoader
       Console.Error.WriteLine(@"Usage: 47loader-tzx [options] file [file ...]
 
 Options:
+-fancyscreen s: create a fancy screen load for use with 47loader_dynamic
+                See: https://code.google.com/p/47loader/wiki/FancyScreen
 -extracycles n: additional 34T cycles to add to timings.  May be negative
 -instascreen  : create a screen block for use with 47loader_instascreen
 -noheader     : omit the TZX file header (automatically selected if output
@@ -437,6 +376,12 @@ rom          |                 | 855T/1710T
     }
     //*/
   }
+
+    // WriteData implementation for fancy screens
+    private static void WriteData_FancyScreen()
+    {
+      FancyScreen.WriteData(_tapefile, _dynamicTable, _data, _blockHeader);
+    }
 
     public static int Main(string[] args)
     {
