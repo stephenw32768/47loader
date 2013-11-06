@@ -9,9 +9,14 @@ The 47loader-tzx tool can produce screens that load in unusual ways.  Such scree
 You can use 47loader-tzx's `-fancyscreen` option to specify a fancy screen load.  The option takes as an argument one of the following:
 
 || *`-fancyscreen` argument* || *Effect* || *Loader direction after the load is complete* ||
+
+|| `btt_fa` || Loads the pixmap bottom-to-top instead of in thirds, then the attributes forwards. || Forwards ||
+|| `btt_ra` || Loads the pixmap bottom-to-top instead of in thirds, then the attributes backwards. || Backwards ||
 || `fa_rp` || Loads the attributes forwards, then the pixmap backwards. || Backwards ||
 || `fp_ra` || Loads the pixmap forwards, then the attributes backwards. || Backwards ||
+|| `ra_btt` || Loads the attributes backwards, then the pixmap bottom-to-top instead of in thirds. || Backwards ||
 || `ra_fp` || Loads the attributes backwards, then the pixmap forwards. || Forwards ||
+|| `ra_ttb` || Loads the attributes backwards, then the pixmap top-to-bottom instead of in thirds. || Forwards ||
 || `ttb_fa` || Loads the pixmap top-to-bottom instead of in thirds, then the attributes forwards. || Forwards ||
 || `ttb_ra` || Loads the pixmap top-to-bottom instead of in thirds, then the attributes backwards. || Backwards ||
 
