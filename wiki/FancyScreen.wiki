@@ -22,17 +22,21 @@ You can use 47loader-tzx's `-fancyscreen` option to specify a fancy screen load.
 || `ra_btt` || Loads the attributes backwards, then the pixmap bottom-to-top instead of in thirds. || Backwards ||
 || `ra_fp` || Loads the attributes backwards, then the pixmap forwards. || Forwards ||
 || `ra_ttb` || Loads the attributes backwards, then the pixmap top-to-bottom instead of in thirds. || Forwards ||
+|| `rp_fa` || Loads the pixmap backwards, then the attributes forwards. || Forwards ||
 || `ttb_fa` || Loads the pixmap top-to-bottom instead of in thirds, then the attributes forwards. || Forwards ||
 || `ttb_ra` || Loads the pixmap top-to-bottom instead of in thirds, then the attributes backwards. || Backwards ||
 
-Add your content here.
+For example, this sequence of commands creates a tape file containing:
+  * a screen that loads the pixmap forwards but the attributes backwards;
+  * a block containing a game, immediately afterwards with no gap, for loading using "[Resume resume]":
 
+{{{
+47loader-tzx -fancyscreen fp_ra -pause 0 -output mygame.tzx mygame.scr
+47loader-tzx -pilot resume -output mygame.tzx mygame.bin
+}}}
 
+When you use `-fancyscreen`, 47loader-tzx reports the length of the table containing the addresses, lengths and directions of each block comprising the screen.
 
+= Writing the loader =
 
-= Details =
-
-Add your content here.  Format your content with:
-  * Text in *bold* or _italic_
-  * Headings, paragraphs, and lists
-  * Automatic links to other wiki pages
+TODO
