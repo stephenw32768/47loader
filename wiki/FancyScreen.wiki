@@ -47,7 +47,10 @@ For example, this sequence of commands creates a tape file containing:
 47loader-tzx -pilot resume -output mygame.tzx mygame.bin
 }}}
 
-When you use `-fancyscreen`, 47loader-tzx reports the length of the table containing the addresses, lengths and directions of each block comprising the screen.
+When you use `-fancyscreen`, 47loader-tzx reports the length of the table containing the addresses, lengths and directions of each block comprising the screen.  The above example produces the following output:
+{{{
+Dynamic table length: 9 bytes
+}}}
 
 = Writing the loader =
 
@@ -120,6 +123,15 @@ Here is a second, similar example.  In this example, we are using the `linear_tt
 47loader-tzx -fancyscreen linear_ttb -pause 0 -output mygame.tzx mygame.scr
 47loader-tzx -pilot resume -output mygame.tzx mygame.bin
 }}}
+
+The output from the first 47loader-tzx command is:
+{{{
+Dynamic table length: 649 bytes
+Define LOADER_DYNAMIC_ONE_BYTE_LENGTHS
+Define LOADER_DYNAMIC_FORWARDS_ONLY
+}}}
+
+The load routine is as follows:
 
 {{{
 ;;; relocate the loader to this address
