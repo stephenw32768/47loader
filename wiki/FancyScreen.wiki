@@ -113,3 +113,60 @@ LOADER_CHANGE_DIRECTION:equ 1
 
         include "47loader_simple_basic_embed_bottom.asm"
 }}}
+
+Here is a second, similar example.  In this example, we are using the `linear_ttb` effect.
+
+{{{
+47loader-tzx -fancyscreen linear_ttb -pause 0 -output mygame.tzx mygame.scr
+47loader-tzx -pilot resume -output mygame.tzx mygame.bin
+}}}
+
+{{{
+;;; relocate the loader to this address
+LOADER_ABSOLUTE_ADDR:       equ     32768
+        include "47loader_simple_basic_embed_top.asm"
+
+;;;  this is the border theme to use.  A full list of the
+;;;  available themes is on the Wiki:
+;;;  https://code.google.com/p/47loader/wiki/BorderThemes
+LOADER_THEME_RAINBOW:   equ 1
+
+;;; this is the address at which the dynamic table will be
+;;; loaded.  It happens to be the same address at which the
+;;; game is to be loaded; once the screen in place, the table
+;;; is not required any more
+LOADER_DYNAMIC_TABLE_ADDR:equ 49152
+
+;;; loader_dynamic requires "resume"
+LOADER_RESUME:equ 1
+
+;;; 47loader-tzx told us to define these symbols:
+;;; linear screen loads consist of many 32-byte blocks, so 47loader-tzx
+;;; writes a more compact table using only one byte for each block length
+LOADER_DYNAMIC_ONE_BYTE_LENGTHS:equ 1
+;;; linear screen loads never change direction
+LOADER_DYNAMIC_FORWARDS_ONLY:equ 1
+
+        ;; loading the screen is a simple as just calling
+        ;; loader_dynamic
+        call    loader_dynamic
+        ;; as with all 47loader entry points, the carry flag
+        ;; is set if the load succeeded
+        jr      nc,.err
+
+        ;; load 8144 bytes at address 49152 using "resume"
+        ld      ix,49152
+        ld      de,8144
+        call    loader_resume
+
+        ;; if the load succeeded, jump to the game, otherwise
+        ;; fall through to the error handler
+        jp      c,49152
+
+.err:
+        include "47loader_error_handler.asm"
+        include "47loader.asm"
+        include "47loader_dynamic.asm"
+
+        include "47loader_simple_basic_embed_bottom.asm"
+}}}
