@@ -6,13 +6,25 @@ The 47loader-tzx tool can produce screens that load in unusual ways.  Such scree
 
 = Creating a tape file =
 
-You can use 47loader-tzx's `-fancyscreen` option to specify a fancy screen load.  The option takes as an argument one of the following:
+You can use 47loader-tzx's `-fancyscreen` option to specify a fancy screen load.  The option takes an argument specifying the desired loading effect.
+
+== Bidirectional screen loads ==
 
 || *`-fancyscreen` argument* || *Effect* || *Loader direction after the load is complete* ||
 || `bidi_acp` || Attributes that start at the top and bottom and converge in the centre, then a bidirectional pixmap load. || Backwards ||
 || `bidi_ap` || Bidirectional screen load, attributes first. || Backwards ||
 || `bidi_pa` || Bidirectional screen load, pixmap first. || Backwards ||
 || `bidi_pac` || Bidirectional pixmap load followed by attributes that start at the top and bottom and converge in the centre. || Backwards ||
+
+== Linear screen loads ==
+
+|| *`-fancyscreen` argument* || *Effect* || *Loader direction after the load is complete* ||
+|| `linear_btt` || The screen loads in a non-interlaced fashion from bottom to top. || Forwards ||
+|| `linear_ttb` || The screen loads in a non-interlaced fashion from top to bottom. || Forwards ||
+
+== Other effects ==
+
+|| *`-fancyscreen` argument* || *Effect* || *Loader direction after the load is complete* ||
 || `btt_fa` || Loads the pixmap bottom-to-top instead of in thirds, then the attributes forwards. || Forwards ||
 || `btt_ra` || Loads the pixmap bottom-to-top instead of in thirds, then the attributes backwards. || Backwards ||
 || `fa_btt` || Loads the attributes forwards, then the pixmap bottom-to-top instead of in thirds. || Backwards ||
@@ -48,7 +60,7 @@ You will need to define some symbols:
   * `LOADER_DYNAMIC_FORWARDS_ONLY`: define this symbol if 47loader-tzx tells you to.  It disables the direction-change code in the "dynamic" module, saving a few bytes if the fancy screen effect does not load any blocks backwards.  If this symbol is not defined, direction changes are needed so you must define `LOADER_CHANGE_DIRECTION` to bring the required routine into the loader.
   * `LOADER_DYNAMIC_ONE_BYTE_LENGTHS`: define this symbol if 47loader-tzx tells you to.  If defined, the block lengths in the dynamic table are one byte wide.  47loader-tzx writes dynamic tables like this if no dynamic block is longer than 127 bytes.
 
-Because fancy screens generally involve one or more changes of load direction, it is possible that the loader will be left pointing backwards after the screen has loaded.  The table above indicates which fancy effects this applies to.  Following a fancy screen load, you probably want to load the game forwards, so you must include a call to `loader_change_direction` before loading the game.
+Because fancy screens generally involve one or more changes of load direction, it is possible that the loader will be left pointing backwards after the screen has loaded.  The tables above indicates which fancy effects this applies to.  Following a fancy screen load, you probably want to load the game forwards, so you must include a call to `loader_change_direction` before loading the game.
 
 Here is an example of a loader that will be embedded in a BASIC REM statement.  It uses the "dynamic" module to load the fancy screen, then loads the game using "resume".
 
