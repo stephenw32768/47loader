@@ -41,7 +41,12 @@ When you use `-fancyscreen`, 47loader-tzx reports the length of the table contai
 
 Fancy screens are loaded using a module called "dynamic" that exports an entry point, `loader_dynamic`.
 
-As described above, `-fancyscreen` instructs 47loader-tzx to output a block containing a table describing the blocks that comprise the screen.  You must define the symbol LOADER_DYNAMIC_TABLE_ADDR; its value is the memory address at which the table will be loaded.  There must be enough free memory at this address to store the number of bytes reported by 47loader-tzx.  You must also define LOADER_RESUME and LOADER_CHANGE_DIRECTION because "dynamic" requires both of these options.
+You will need to define some symbols:
+
+  * `LOADER_DYNAMIC_TABLE_ADDR`: as described above, `-fancyscreen` instructs 47loader-tzx to output a block containing a table describing the blocks that comprise the screen.  The value of this symbol is the memory address at which the table will be loaded.  There must be enough free memory at this address to store the number of bytes reported by 47loader-tzx.
+  * `LOADER_RESUME`: "dynamic" requires "resume", so you must define this symbol.
+  * `LOADER_DYNAMIC_FORWARDS_ONLY`: define this symbol if 47loader-tzx tells you to.  It disables the direction-change code in the "dynamic" module, saving a few bytes if the fancy screen effect does not load any blocks backwards.  If this symbol is not defined, direction changes are needed so you must define `LOADER_CHANGE_DIRECTION` to bring the required routine into the loader.
+  * `LOADER_DYNAMIC_ONE_BYTE_LENGTHS`: define this symbol if 47loader-tzx tells you to.  If defined, the block lengths in the dynamic table are one byte wide.  47loader-tzx writes dynamic tables like this if no dynamic block is longer than 127 bytes.
 
 Because fancy screens generally involve one or more changes of load direction, it is possible that the loader will be left pointing backwards after the screen has loaded.  The table above indicates which fancy effects this applies to.  Following a fancy screen load, you probably want to load the game forwards, so you must include a call to `loader_change_direction` before loading the game.
 
