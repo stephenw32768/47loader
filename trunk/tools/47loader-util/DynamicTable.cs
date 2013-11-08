@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace FortySevenLoader
 {
@@ -119,9 +120,26 @@ namespace FortySevenLoader
     /// </returns>
     IEnumerator<byte> IEnumerable<byte>.GetEnumerator()
     {
-      foreach (var entry in this)
-        foreach (var b in entry)
-          yield return b;
+      if (this.Any<Entry>(entry => entry.Length > 127))
+      {
+        foreach (var entry in this)
+          foreach (var b in entry)
+            yield return b;
+      }
+      else
+      {
+        // all blocks are 127 bytes or shorter, so we can use a
+        // single byte for the lengths.  So, big-endian address,
+        // then length with direction-change flag:
+        foreach (var entry in this)
+        {
+          yield return entry.Address.High;
+          yield return entry.Address.Low;
+          yield return
+            (byte)(entry.Length.Low + (entry.ChangeDirection ? 128 : 0));
+        }
+      }
+
       // end-of-table marker
       yield return (byte)0;
     }

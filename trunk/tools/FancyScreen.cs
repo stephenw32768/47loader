@@ -178,6 +178,18 @@ namespace FortySevenLoader
      .Concat(MakeTtbPixmap(false, true))
     );
 
+    /// <summary>
+    /// Table defining a linear screen load from top to bottom.
+    /// </summary>
+    internal static readonly DynamicTable Linear_TTB =
+      new DynamicTable(MakeLinear());
+
+    /// <summary>
+    /// Table defining a linear screen load from bottom to top.
+    /// </summary>
+    internal static readonly DynamicTable Linear_BTT =
+      new DynamicTable(MakeLinear(false));
+
     #endregion
 
     #region Private methods
@@ -336,6 +348,65 @@ namespace FortySevenLoader
 
     /// <summary>
     /// Constructs a sequence of
+    /// <see cref="DynamicTable.Entry"/> instances for loading a screen
+    /// in a linear fashion.
+    /// </summary>
+    /// <param name='topToBottom'>
+    /// Set if the screen should load top to bottom, clear if bottom to top.
+    /// </param>
+    /// <returns>
+    /// The sequence of dynamic table entries.
+    /// </returns>
+    private static IEnumerable<DynamicTable.Entry>
+      MakeLinear(bool topToBottom = true)
+    {
+      var pixmap = new List<DynamicTable.Entry>();
+      var attrs = new List<DynamicTable.Entry>();
+
+      // take each third of the screen in turn
+      for (int third = 0; third < 3; third++)
+      {
+        int baseAddress = 16384 + (third * 2048);
+        // we have eight rows of characters per third
+        for (int row = 0; row < 8; row++)
+        {
+          // each row begins 32 bytes after the previous row
+          int rowAddress = baseAddress + (row * 32);
+
+          // we have eight lines of pixels per row
+          for (int line = 0; line < 8; line++)
+          {
+            // each line begins 256 bytes after the previous line
+            var lineAddress = (ushort)(rowAddress + (line * 256));
+            pixmap.Add(new DynamicTable.Entry(lineAddress, 32));
+          }
+        }
+      }
+
+      // attributes are a lot easier
+      attrs.AddRange(from row in Enumerable.Range(0, 24)
+                     let rowAddress = 0x5800 + (row * 32)
+                     select new DynamicTable.Entry((ushort)rowAddress, 32)
+      );
+
+      if (!topToBottom)
+      {
+        pixmap.Reverse();
+        attrs.Reverse();
+      }
+
+      // for each row, write one lot of attributes and eight lines
+      int lineIndex = 0;
+      foreach (var row in attrs)
+      {
+        yield return row;
+        for (int i = 0; i < 8; i++)
+          yield return pixmap[lineIndex++];
+      }
+    }
+
+    /// <summary>
+    /// Constructs a sequence of
     /// <see cref="DynamicTable.Entry"/> instances for loading attributes
     /// that start at opposite ends of the screen and converge.
     /// </summary>
@@ -432,6 +503,12 @@ namespace FortySevenLoader
 
       Console.Error.WriteLine
         ("Dynamic table length: {0} bytes", tableBytes.Length);
+      if (!table.Any<DynamicTable.Entry>(entry => entry.Length > 127))
+        // compact table -- need to define this
+        Console.Error.WriteLine("Define LOADER_DYNAMIC_ONE_BYTE_LENGTHS");
+      if (!table.Any<DynamicTable.Entry>(entry => entry.ChangeDirection))
+        // defining this saves us a few bytes
+        Console.Error.WriteLine("Define LOADER_DYNAMIC_FORWARDS_ONLY");
     }
 
     #endregion
