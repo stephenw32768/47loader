@@ -21,6 +21,15 @@
         ;; LOADER_DYNAMIC_INITIAL:
         ;; if defined, this is the address of a routine to call to fetch
         ;; the length of the table.  If not defined, loader_entry is used.
+        ;;
+        ;; LOADER_DYNAMIC_FORWARDS_ONLY:
+        ;; if defined, direction changes are disabled; define this to
+        ;; save a few bytes if all the dynamic loads are forwards.
+        ;;
+        ;; LOADER_DYNAMIC_ONE_BYTE_LENGTHS:
+        ;; if defined, the table uses only a single byte to store each
+        ;; length and direction change flag.  All dynamic blocks are
+        ;; thus no larger than 127 bytes.
         
 loader_dynamic:
 
@@ -66,19 +75,29 @@ loader_dynamic:
         ld      ixl,a           ; and into IX
         inc     hl              ; advance pointer
 
+
         ;; next, we read the length of the data to load, again
         ;; in big-endian format
+        ifndef  LOADER_DYNAMIC_ONE_BYTE_LENGTHS
         ld      d,(hl)          ; high byte of length into DE
         inc     hl              ; advance table pointer
+        endif
         ld      e,(hl)          ; low byte of length into DE
         inc     hl              ; advance table pointer
         push    hl              ; stack the table pointer
 
-        ;; if bit 15 of the length is set, we need to change
-        ;; direction
+        ifndef  LOADER_DYNAMIC_FORWARDS_ONLY
+        ;; if bit 15 of the length is set (or bit 7 for one-byte
+        ;; lengths), we need to change direction
+        ifndef  LOADER_DYNAMIC_ONE_BYTE_LENGTHS
         bit     7,d             ; test the flag bit
-        call    nz,loader_change_direction ; change direction if flag set
         res     7,d             ; clear the flag bit
+        else
+        bit     7,e             ; test the flag bit
+        res     7,e             ; clear the flag bit
+        endif
+        call    nz,loader_change_direction ; change direction if flag set
+        endif
 
         ;; with IX and DE set up, we can load the block
         call    loader_resume   ; load the block
