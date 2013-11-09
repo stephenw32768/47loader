@@ -188,7 +188,21 @@ namespace FortySevenLoader
     /// Table defining a linear screen load from bottom to top.
     /// </summary>
     internal static readonly DynamicTable Linear_BTT =
-      new DynamicTable(MakeLinear(false));
+      new DynamicTable(MakeLinear(LinearMode.BottomToTop));
+
+    /// <summary>
+    /// Table defining a linear screen load starting at the top and
+    /// bottom, meeting in the middle.
+    /// </summary>
+    internal static readonly DynamicTable Linear_C =
+      new DynamicTable(MakeLinear(LinearMode.Converge));
+
+    /// <summary>
+    /// Table defining a linear screen load starting at the middle of
+    /// the screen, spreading to the top and bottom.
+    /// </summary>
+    internal static readonly DynamicTable Linear_D =
+      new DynamicTable(MakeLinear(LinearMode.Diverge));
 
     #endregion
 
@@ -346,6 +360,8 @@ namespace FortySevenLoader
       }
     }
 
+    private enum LinearMode { TopToBottom, BottomToTop, Converge, Diverge }
+
     /// <summary>
     /// Constructs a sequence of
     /// <see cref="DynamicTable.Entry"/> instances for loading a screen
@@ -358,7 +374,7 @@ namespace FortySevenLoader
     /// The sequence of dynamic table entries.
     /// </returns>
     private static IEnumerable<DynamicTable.Entry>
-      MakeLinear(bool topToBottom = true)
+      MakeLinear(LinearMode mode = LinearMode.TopToBottom)
     {
       var pixmap = new List<DynamicTable.Entry>();
       var attrs = new List<DynamicTable.Entry>();
@@ -389,19 +405,48 @@ namespace FortySevenLoader
                      select new DynamicTable.Entry((ushort)rowAddress, 32)
       );
 
-      if (!topToBottom)
+      switch (mode)
       {
-        pixmap.Reverse();
-        attrs.Reverse();
-      }
+        case LinearMode.BottomToTop:
+          pixmap.Reverse();
+          attrs.Reverse();
+          goto case LinearMode.TopToBottom; // fall through
+        case LinearMode.TopToBottom:
+          // for each row, write one lot of attributes and eight lines
+          int lineIndex = 0;
+          foreach (var row in attrs)
+          {
+            yield return row;
+            for (int i = 0; i < 8; i++)
+              yield return pixmap[lineIndex++];
+          }
+          break;
 
-      // for each row, write one lot of attributes and eight lines
-      int lineIndex = 0;
-      foreach (var row in attrs)
-      {
-        yield return row;
-        for (int i = 0; i < 8; i++)
-          yield return pixmap[lineIndex++];
+        case LinearMode.Diverge:
+          // reverse the top and bottom halves of the screen
+          pixmap = (pixmap.Take(pixmap.Count / 2).Reverse()
+                    .Concat(pixmap.Skip(pixmap.Count / 2).Reverse())).ToList();
+          attrs = (attrs.Take(attrs.Count / 2).Reverse()
+                    .Concat(attrs.Skip(attrs.Count / 2).Reverse())).ToList();
+          goto case LinearMode.Converge; // fall through
+        case LinearMode.Converge:
+          // write a pair of rows together: two lots of attributes
+          // and lines
+          while (attrs.Count > 0)
+          {
+            yield return attrs[0];
+            yield return attrs[attrs.Count - 1];
+            attrs.RemoveAt(attrs.Count - 1);
+            attrs.RemoveAt(0);
+            for (int i = 0; i < 8; i++)
+            {
+              yield return pixmap[0];
+              yield return pixmap[pixmap.Count - 1];
+              pixmap.RemoveAt(pixmap.Count - 1);
+              pixmap.RemoveAt(0);
+            }
+          }
+          break;
       }
     }
 
