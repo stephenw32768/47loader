@@ -58,6 +58,11 @@ loader_dynamic:
         ret     nc
         endif
 
+        ;; disable the border once the screen starts loading
+        ifdef   LOADER_TOGGLE_BORDER
+        call    loader_disable_border
+        endif
+
         ;; enter the main loop with the table address in HL
         ld      hl,LOADER_DYNAMIC_TABLE_ADDR
 .loader_dynamic_loop:

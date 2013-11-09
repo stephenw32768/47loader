@@ -56,6 +56,12 @@ loader_entry:
         ld      d,a             ; knock out high byte of DE
         endif
         set_searching_border
+        ifdef   LOADER_TOGGLE_BORDER
+        ;; enable the border if it has been disabled; the
+        ;; expected usage for this feature is to kill the border
+        ;; immediately after an instascreen
+        call    loader_enable_border
+        endif
 
         ;; now we are ready to start looking for pilot pulses
         di
@@ -257,6 +263,7 @@ loader_resume:
         ;; and c   4T
         ;; and 7   7T
         border                    ; put border colour in accumulator
+.border_sound_instruction:
         or      .border_sound     ; set bit 3 to make sound (7T)
         out     (0xfe),a          ; switch border and make sound (11T)
         ld      a,(.read_edge_test); place test instruction in accumulator, 13T
@@ -367,5 +374,23 @@ loader_change_direction:
         ld      a,8                            ; bitmask for toggling inc/dec
         xor     (hl)                           ; switch the instruction
         ld      (hl),a                         ; store it
+        ret
+        endif
+
+        ifdef   LOADER_TOGGLE_BORDER
+        ;; enable the border effect by setting the "border
+        ;; sound instruction" to OR *, combining the sound
+        ;; bit with the colour in the accumulator
+loader_enable_border:
+        ld      a,0xf6          ; opcode for OR *
+        ld      (.border_sound_instruction),a
+        ret
+
+        ;; enable the border effect by setting the "border
+        ;; sound instruction" to LD A *, replacing the colour
+        ;; in the accumulator with just the sound bit
+loader_disable_border:
+        ld      a,0x3e          ; opcode for LD A,*
+        ld      (.border_sound_instruction),a
         ret
         endif
