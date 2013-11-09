@@ -10,6 +10,8 @@ You can use 47loader-tzx's `-fancyscreen` option to specify a fancy screen load.
 
 == Bidirectional screen loads ==
 
+Define `LOADER_CHANGE_DIRECTION` when using these effects.
+
 || *`-fancyscreen` argument* || *Effect* || *Loader direction after the load is complete* ||
 || `bidi_acp` || Attributes that start at the top and bottom and converge in the centre, then a bidirectional pixmap load. || Backwards ||
 || `bidi_ap` || Bidirectional screen load, attributes first. || Backwards ||
@@ -18,8 +20,12 @@ You can use 47loader-tzx's `-fancyscreen` option to specify a fancy screen load.
 
 == Linear screen loads ==
 
+Define `LOADER_DYNAMIC_FORWARDS_ONLY` and `LOADER_DYNAMIC_ONE_BYTE_LENGTHS` when using these effects.
+
 || *`-fancyscreen` argument* || *Effect* || *Loader direction after the load is complete* ||
 || `linear_btt` || The screen loads in a non-interlaced fashion from bottom to top. || Forwards ||
+|| `linear_c` || The screen loads in a non-interlaced fashion from the top and bottom, meeting in the middle. || Forwards ||
+|| `linear_d` || The screen loads in a non-interlaced fashion from the middle, spreading to the top and bottom. || Forwards ||
 || `linear_ttb` || The screen loads in a non-interlaced fashion from top to bottom. || Forwards ||
 
 == Other effects ==
