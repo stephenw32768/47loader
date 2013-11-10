@@ -26,6 +26,7 @@
         ;; LOADER_THEME_BRAZIL
         ;; LOADER_THEME_BLEEPLOAD
         ;; LOADER_THEME_CANDY
+        ;; LOADER_THEME_CHRISTMAS
         ;; LOADER_THEME_CYCLE_VERSA
         ;; LOADER_THEME_ELIXIRVITAE
         ;; LOADER_THEME_FIRE
@@ -549,6 +550,44 @@
         endm
         macro set_data_border
         ;; nothing, theme_new_byte does it
+        endm
+
+.theme_t_states:equ 19          ; "standard" theme overhead
+        macro border
+        sla     a               ; shift EAR bit into carry (8T)
+        sbc     a,a             ; A=0xFF on high edge, 0 on low edge (4T)
+.border_colour:equ $ + 1
+        and     0               ; set colour on high edge (7T)
+        endm
+
+        endif
+
+        ifdef LOADER_THEME_CHRISTMAS
+        ;; Searching: black/red
+        ;; Pilot/sync:black/white
+        ;; Data:      black/red/green
+        ;;
+        ;; Data border colour changes per pair of edges.
+
+        macro theme_new_byte    ; 33T, one T-state less than sample loop cycle
+        ld      a,(.border_colour) ; copy existing colour into accumulator, 13T
+        xor     6                  ; switch colour (7T)
+        ld      (.border_colour),a ; save new colour (13T)
+        endm
+.theme_new_byte:equ 1
+.theme_new_byte_overhead:equ .read_edge_loop_t_states ; close enough to 1 cycle
+
+        macro set_searching_border
+        ld      a,2           ; red
+        ld      (.border_colour),a
+        endm
+        macro set_pilot_border
+        ld      a,7                  ; white
+        ld      (.border_colour),a
+        endm
+        macro set_data_border
+        ld      a,2           ; red
+        ld      (.border_colour),a
         endm
 
 .theme_t_states:equ 19          ; "standard" theme overhead
