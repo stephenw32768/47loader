@@ -11,7 +11,7 @@
 || EAGER || 1710T || 509T || 1018T || ~170% || ||
 || STANDARD || 1710T || 543T || 1086T || ~160% || The default speed if none is selected. ||
 || CAUTIOUS || 1710T || 611T || 1222T || ~145% || ||
-|| CONSERVATIVE || 1710T || 619T || 1358T || ~130% || ||
+|| CONSERVATIVE || 1710T || 679T || 1358T || ~130% || ||
 || SPEEDLOCK7 || 1710T || 713T || 1426T || ~125% || Almost identical to the speed of the slower Speedlock loaders. ||
 || ROM || 2168T || 855T || 1710T || 100% || The same timings as used by the ROM loader. ||
 
