@@ -40,6 +40,13 @@ namespace FortySevenLoader
     (MakeBidiPixmap().Concat(ConvergingAttrs(true)));
 
     /// <summary>
+    /// Table defining a bidirectional screen load, pixmap first,
+    /// with diverging attributes.
+    /// </summary>
+    internal static readonly DynamicTable Bidi_PAD = new DynamicTable
+    (MakeBidiPixmap().Concat(ConvergingAttrs(true, true)));
+
+    /// <summary>
     /// Table defining a bidirectional screen load, attributes first.
     /// </summary>
     internal static readonly DynamicTable Bidi_AP = new DynamicTable
@@ -60,6 +67,14 @@ namespace FortySevenLoader
     /// </summary>
     internal static readonly DynamicTable Bidi_ACP = new DynamicTable
     (ConvergingAttrs().Concat(MakeBidiPixmap(initiallyBackwards: true)));
+
+    /// <summary>
+    /// Table defining a bidirectional screen load, diverging attributes
+    /// first.
+    /// </summary>
+    internal static readonly DynamicTable Bidi_ADP = new DynamicTable
+    (ConvergingAttrs(diverge: true)
+       .Concat(MakeBidiPixmap(initiallyBackwards: true)));
 
     /// <summary>
     /// Table defining a screen load with forwards attributes
@@ -458,19 +473,28 @@ namespace FortySevenLoader
     /// <param name='initiallyBackwards'>
     /// Set if the loader is going backwards at the point of entry.
     /// </param>
+    /// <param name='diverge'></para>
+    /// Set if the attributes should diverge instead of converge.
     /// <returns>
     /// The sequence of dynamic table entries.
     /// </returns>
     private static IEnumerable<DynamicTable.Entry>
-      ConvergingAttrs(bool initiallyBackwards = false)
+      ConvergingAttrs(bool initiallyBackwards = false, bool diverge = false)
     {
       const ushort blockSize = 16;
       ushort start = 0x5800, end = 23295;
       bool changeDirection = initiallyBackwards;
 
+      if (diverge)
+      {
+        // start in the middle instead of at the edges
+        start += (ushort)(768 / 2);
+        end -= (ushort)(768 / 2);
+      }
+
       // one block from the start, then one block from the end, and
       // continue until they converge
-      while (start < end)
+      for (int i = 0; i < 24; i++)
       {
         yield return new DynamicTable.Entry(start, blockSize, changeDirection);
         changeDirection = true;
