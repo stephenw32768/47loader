@@ -14,9 +14,11 @@ Define `LOADER_CHANGE_DIRECTION` when using these effects.
 
 || *`-fancyscreen` argument* || *Effect* || *Loader direction after the load is complete* ||
 || `bidi_acp` || Attributes that start at the top and bottom and converge in the centre, then a bidirectional pixmap load. || Backwards ||
+|| `bidi_adp` || Attributes that start at the centre and diverge from top to bottom, then a bidirectional pixmap load. || Backwards ||
 || `bidi_ap` || Bidirectional screen load, attributes first. || Backwards ||
 || `bidi_pa` || Bidirectional screen load, pixmap first. || Backwards ||
 || `bidi_pac` || Bidirectional pixmap load followed by attributes that start at the top and bottom and converge in the centre. || Backwards ||
+|| `bidi_pad` || Bidirectional pixmap load followed by attributes that start at the centre and diverge from top to bottom. || Backwards ||
 
 == Linear screen loads ==
 
