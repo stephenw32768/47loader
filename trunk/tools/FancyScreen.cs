@@ -1,4 +1,4 @@
-// 47loader (c) Stephen Williams 2013
+// 47loader (c) Stephen Williams 2013-2015
 
 using System;
 using System.Collections.Generic;
@@ -47,6 +47,27 @@ namespace FortySevenLoader
     (MakeBidiPixmap().Concat(ConvergingAttrs(true, true)));
 
     /// <summary>
+    /// Table defining a bidirectional screen load, pixmap first, with
+    /// square attributes (size 8).
+    /// </summary>
+    internal static readonly DynamicTable Bidi_PAS8 = new DynamicTable
+      (MakeBidiPixmap().Concat(AttrSquares(8, initiallyBackwards: true)));
+
+    /// <summary>
+    /// Table defining a bidirectional screen load, pixmap first, with
+    /// square attributes (size 4).
+    /// </summary>
+    internal static readonly DynamicTable Bidi_PAS4 = new DynamicTable
+      (MakeBidiPixmap().Concat(AttrSquares(4, initiallyBackwards: true)));
+
+    /// <summary>
+    /// Table defining a bidirectional screen load, pixmap first, with
+    /// square attributes (size 2).
+    /// </summary>
+    internal static readonly DynamicTable Bidi_PAS2 = new DynamicTable
+      (MakeBidiPixmap().Concat(AttrSquares(2, initiallyBackwards: true)));
+
+    /// <summary>
     /// Table defining a bidirectional screen load, attributes first.
     /// </summary>
     internal static readonly DynamicTable Bidi_AP = new DynamicTable
@@ -75,6 +96,27 @@ namespace FortySevenLoader
     internal static readonly DynamicTable Bidi_ADP = new DynamicTable
     (ConvergingAttrs(diverge: true)
        .Concat(MakeBidiPixmap(initiallyBackwards: true)));
+
+    /// <summary>
+    /// Table defining a bidirectional screen load, square attributes
+    /// (size 8) first.
+    /// </summary>
+    internal static readonly DynamicTable Bidi_AS8P = new DynamicTable
+      (AttrSquares(8).Concat(MakeBidiPixmap(initiallyBackwards: false)));
+    
+    /// <summary>
+    /// Table defining a bidirectional screen load, square attributes
+    /// (size 4) first.
+    /// </summary>
+    internal static readonly DynamicTable Bidi_AS4P = new DynamicTable
+      (AttrSquares(4).Concat(MakeBidiPixmap(initiallyBackwards: false)));
+    
+    /// <summary>
+    /// Table defining a bidirectional screen load, square attributes
+    /// (size 2) first.
+    /// </summary>
+    internal static readonly DynamicTable Bidi_AS2P = new DynamicTable
+      (AttrSquares(2).Concat(MakeBidiPixmap(initiallyBackwards: false)));
 
     /// <summary>
     /// Table defining a screen load with forwards attributes
@@ -123,6 +165,30 @@ namespace FortySevenLoader
       // change direction and load the attributes
       new DynamicTable.Entry(23295, 768, true)
     };
+
+    /// <summary>
+    /// Table defining a screen load with a forwards pixmap
+    /// followed by attribute squares (size 8).
+    /// </summary>
+    internal static readonly DynamicTable FP_AS8 = new DynamicTable(
+      new[] { new DynamicTable.Entry(16384, 6144) }.Concat(AttrSquares(8))
+    );
+
+    /// <summary>
+    /// Table defining a screen load with a forwards pixmap
+    /// followed by attribute squares (size 4).
+    /// </summary>
+    internal static readonly DynamicTable FP_AS4 = new DynamicTable(
+      new[] { new DynamicTable.Entry(16384, 6144) }.Concat(AttrSquares(4))
+    );
+
+    /// <summary>
+    /// Table defining a screen load with a forwards pixmap
+    /// followed by attribute squares (size 2).
+    /// </summary>
+    internal static readonly DynamicTable FP_AS2 = new DynamicTable(
+      new[] { new DynamicTable.Entry(16384, 6144) }.Concat(AttrSquares(2))
+    );
 
     /// <summary>
     /// Table defining a top-to-bottom pixmap load followed by forwards
@@ -222,6 +288,53 @@ namespace FortySevenLoader
     #endregion
 
     #region Private methods
+
+    private static IEnumerable<DynamicTable.Entry>
+      AttrSquares(byte size, bool initiallyBackwards = false)
+    {
+      // squares can have 1, 2, 4 or 8 character cells per side
+      switch (size)
+      {
+        case 1:
+        case 2:
+        case 4:
+        case 8:
+          break;
+        default:
+          throw new ArgumentOutOfRangeException("size");
+      }
+
+      int squaresPerRow = 32 / size;
+      // divvy the attribute memory up into strips of length size
+      var chunks = new List<DynamicTable.Entry>();
+      for (HighLow16 start = 16384 + 6144, addr = start; addr < 23296; addr += size)
+      {
+        chunks.Add(new DynamicTable.Entry
+                   (addr, size, (addr == start) && initiallyBackwards));
+      }
+
+      var firstHalf = new List<DynamicTable.Entry>();
+      var secondHalf = new List<DynamicTable.Entry>();
+
+      // imagine a chessboard, black-white-black-white etc.
+      // we draw all the black squares top-to-bottom, as firstHalf;
+      // we draw all the white squares bottom-to-top, as secondHalf
+      bool stagger = false;
+      do
+      {
+        for (int i = 0; i < (squaresPerRow / 2) * size; i++)
+        {
+          firstHalf.Add(chunks[stagger ? 1 : 0]);
+          secondHalf.Insert(0, chunks[stagger ? 0 : 1]);
+          chunks.RemoveRange(0, 2);
+        }
+
+        stagger = !stagger;
+      }
+      while (chunks.Count > 0);
+
+      return firstHalf.Concat(secondHalf);
+    }
 
     /// <summary>
     /// Constructs a
