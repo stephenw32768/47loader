@@ -16,11 +16,10 @@ The label to define to specify a theme is `LOADER_THEME_*`, where `*` is one of 
 || CHRISTMAS || Black/red || Black/white || Black/white || Black/red/green || Red and green, the holly and the ivy. ||
 || CYCLE_VERSA || Solid black with fine red lines || Solid black with fine green lines || Solid black with fine white lines || Solid colour, cycling every 256 bytes, with fine black or white lines || Inspired by an effect used by Peter Knight's [https://github.com/going-digital/versaload Versaload]. ||
 || ELIXIRVITAE || Black/magenta || Black/cyan || Black/white || Black/magenta/cyan || Designed to complement _[http://www.worldofspectrum.org/forums/showthread.php?t=45308 Elixir Vitae]_'s loading screen. ||
-|| FIRE || Black/red || Black/yellow || Black/white || Black/red/yellow || Alternates between red and yellow once per bit; the sequence is thus black-red-black-yellow. ||
-|| FIRE_RIPPLE || Black/red || Black/yellow || Black/white || Black/red/yellow || Alternates between red and yellow once per byte, giving a rippling effect. ||
+|| FIRE || Black/red || Black/yellow || Black/white || Black/red/yellow || Alternates between red and yellow once per byte. ||
 || ICE || Blue/cyan || Blue/white || Blue/white || Blue/cyan/white || Data border alternates between cyan and white once per byte. ||
 || ITALY || Black/red || Black/green || Black/white || Red/white/green || The data colours are those of the Italian tricolour. ||
-|| JUBILEE || Black/red || Black/blue || Black/white || Red/white/blue || Celebrating the 60th anniversary of HM Queen Elizabeth II's coronation. ||
+|| JUBILEE || Black/red || Black/blue || Black/white || Red/white/blue || The data colours are those of the British Union Flag. ||
 || LDBYTES || Red/cyan || Red/cyan || Red/cyan || Blue/yellow || Colours used by the ROM loader. ||
 || LDBYTESPLUS || Black/red || Black/cyan || Black/white || Black/blue/yellow || ROM loader colours with a twist. ||
 || ORIGINAL || Black/blue || Black/blue || Black/blue || Black/red || Colours used by 47loader early in its development.  Resembles the loader used by some Imagine/Ocean multiload games. ||
@@ -30,6 +29,7 @@ The label to define to specify a theme is `LOADER_THEME_*`, where `*` is one of 
 || SETYBDL || Blue/yellow || Blue/yellow || Blue/yellow || Red/cyan || Inverse of the ROM loader's colour scheme. ||
 || SPAIN || Black/red || Black/yellow || Black/white || Red/yellow || The data colours are those of the Spanish flag. ||
 || SPEEDLOCK || Black/red || Black/red || Black/red || Black/blue || Resembles the colour scheme used by many iterations of the famous Speedlock loader. ||
+|| TRINIDAD || Black/red || Black/white || Black/white || Black/red/white || The data colours are those of the flag of Trinidad and Tobago. ||
 || VERSA || Solid cyan with fine blue lines || Solid white with fine blue lines || Solid white with fine blue lines || Solid blue with fine cyan and white lines || Inspired by an effect used by Peter Knight's [https://github.com/going-digital/versaload Versaload]. ||
 
 = Example theme source =
@@ -38,8 +38,6 @@ Each theme defines four macros: `border`, `set_searching_border`, `set_pilot_bor
 
 `border` does the actual work of placing the border colour into the accumulator.  On entry, the sign bit of the accumulator is set or clear on alternate edges.
 `set_*_border` make any adjustments to the code to set things up for the searching, syncing/pilot or data borders.  On entry to set_searching_border, carry is set if fast timings are in use and clear if ROM timings are in use.
-
-Themes can define a subroutine, .theme_delay, that replaces the usual 226T delay loop at the beginning of each .read_edge.  The subroutine must execute within a hair's breadth of 226T, including the CALL and RET.
 
 {{{
         ifdef LOADER_THEME_BRAZIL
