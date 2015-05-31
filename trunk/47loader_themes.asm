@@ -1,4 +1,4 @@
-        ;; 47loader (c) Stephen Williams 2013
+        ;; 47loader (c) Stephen Williams 2013-2015
         ;; See LICENSE for distribution terms
 
         ;; Border themes for 47loader
@@ -30,7 +30,6 @@
         ;; LOADER_THEME_CYCLE_VERSA
         ;; LOADER_THEME_ELIXIRVITAE
         ;; LOADER_THEME_FIRE
-        ;; LOADER_THEME_FIRE_RIPPLE
         ;; LOADER_THEME_ICE
         ;; LOADER_THEME_JUBILEE
         ;; LOADER_THEME_LDBYTES
@@ -41,6 +40,7 @@
         ;; LOADER_THEME_RAINBOW_VERSA
         ;; LOADER_THEME_SETYBDL
         ;; LOADER_THEME_SPAIN
+        ;; LOADER_THEME_TRINIDAD
         ;; LOADER_THEME_SPEEDLOCK
         ;; LOADER_THEME_VERSA
         ;; 
@@ -328,51 +328,6 @@
 
         endif
 
-        ifdef LOADER_THEME_RAINBOW
-        ;; Searching: black/red
-        ;; Pilot/sync:black/green; black/white with ROM timings
-        ;; Data:      black/rainbow derived from bits being loaded
-
-        macro set_searching_border
-        ;; A is 0 when this macro is executed, so this line
-        ;; sets .border_instruction to NOP
-        ld      (.border_instruction),a ; NOP
-        ld      a,2                     ; mask for red
-        ld      (.border_mask),a
-        endm
-
-        macro set_pilot_border
-        ld      a,4                     ; mask for green
-        ifdef   LOADER_SUPPORT_ROM_TIMINGS
-        jr      c,.pilot_border_fast    ; jump forward if fast timings in use
-        ld      a,7                     ; mask for white
-.pilot_border_fast:
-        endif
-        ld      (.border_mask),a
-        endm
-
-        macro set_data_border
-        ;; sets border instruction to AND C, combining the
-        ;; value in the accumulator with the bits currently
-        ;; being loaded
-        ld      a,0xa1                     ; AND C
-        ld      (.border_instruction),a
-        ld      a,7                        ; mask for all colour bits
-        ld      (.border_mask),a
-        endm
-
-.theme_t_states:equ 19          ; "standard" theme overhead
-        macro border
-        rla                     ; move EAR bit into carry flag (4T)
-        sbc     a,a             ; A=0xFF on high edge, 0 on low edge (4T)
-.border_instruction:
-        nop                     ; room for a one-byte instruction (4T)
-.border_mask:equ $+1
-        and     0               ; mask only the lowest three bits of A (7T)
-        endm
-
-        endif
-
         ifdef LOADER_THEME_RAINBOW_RIPPLE
         ;; Searching: black/red
         ;; Pilot/sync:black/green; black/white with ROM timings
@@ -425,66 +380,6 @@
         ;; Data:      black/red/yellow
         ;;
         ;; Data border colour changes per byte.
-
-.theme_delay:
-        ;; the initial CALL cost 17T, so we have 209T remaining
-        ld      (.saved_hl),hl      ; save checksum (16T)
-        ld      hl,.border_colour   ; prime HL with address to modify (10T)
-        ld      a,(.read_edge_test) ; copy test instruction into A (13T)
-        cp      0xf3                ; set carry if it is 0xF2 (7T)
-        sbc     a,a                 ; A is now 0 or 0xFF depending on test (4T)
-.border_toggle_mask:equ $ + 1
-        and     4                   ; isolate green colour bit (7T)
-        xor     (hl)                ; toggle border between red and yellow 7T
-        ld      (hl),a              ; store new colour (7T)
-.saved_hl:equ $ + 1
-        ld      hl,0                ; restore checksum (10T)
-        ;; that lot was 81T, so we have 128T remaining
-        ld      a,7                 ; prime delay loop (7T, 121T remaining)
-        dec     a                   ; (4T) (28T total) (93T remaining)
-        jr      nz,$ - 1            ; (12T per loop, then 7T) (79T total) (14T)
-        ;; 14T remaining...
-        and     a                   ; waste 4T (10T remaining)
-        ret                         ; (10T) (226T total)
-
-        macro set_searching_border
-        ;; accumulator is zero when this macro is entered
-        ld      (.border_toggle_mask),a ; no colour switch on alt edges
-        ld      a,2           ; red
-        ld      (.border_colour),a
-        endm
-        macro set_pilot_border
-        ld      a,6                  ; yellow
-        ifdef   LOADER_SUPPORT_ROM_TIMINGS
-        jr      c,.pilot_border_fast ; jump forward if fast timings in use
-        ld      a,7                  ; white
-        endif
-.pilot_border_fast:
-        ld      (.border_colour),a
-        endm
-        macro set_data_border
-        ld      a,2           ; red; need to reinit in case it was white
-        ld      (.border_colour),a
-        ld      a,4           ; switch red/yellow on alternate edges
-        ld      (.border_toggle_mask),a
-        endm
-
-.theme_t_states:equ 19          ; "standard" theme overhead
-        macro border
-        sla     a               ; shift EAR bit into carry (8T)
-        sbc     a,a             ; A=0xFF on high edge, 0 on low edge (4T)
-.border_colour:equ $ + 1
-        and     0               ; set colour on high edge (7T)
-        endm
-
-        endif
-
-        ifdef LOADER_THEME_FIRE_RIPPLE
-        ;; Searching: black/red
-        ;; Pilot/sync:black/yellow; black/white with ROM timings
-        ;; Data:      black/red/yellow
-        ;;
-        ;; Data border colour changes per pair of edges.
 
         macro theme_new_byte    ; 33T, one T-state less than sample loop cycle
         ld      a,(.border_colour) ; copy existing colour into accumulator, 13T
@@ -567,11 +462,49 @@
         ;; Pilot/sync:black/white
         ;; Data:      black/red/green
         ;;
-        ;; Data border colour changes per pair of edges.
+        ;; Data border colour changes per byte.
 
         macro theme_new_byte    ; 33T, one T-state less than sample loop cycle
         ld      a,(.border_colour) ; copy existing colour into accumulator, 13T
         xor     6                  ; switch colour (7T)
+        ld      (.border_colour),a ; save new colour (13T)
+        endm
+.theme_new_byte:equ 1
+.theme_new_byte_overhead:equ .read_edge_loop_t_states ; close enough to 1 cycle
+
+        macro set_searching_border
+        ld      a,2           ; red
+        ld      (.border_colour),a
+        endm
+        macro set_pilot_border
+        ld      a,7                  ; white
+        ld      (.border_colour),a
+        endm
+        macro set_data_border
+        ld      a,2           ; red
+        ld      (.border_colour),a
+        endm
+
+.theme_t_states:equ 19          ; "standard" theme overhead
+        macro border
+        sla     a               ; shift EAR bit into carry (8T)
+        sbc     a,a             ; A=0xFF on high edge, 0 on low edge (4T)
+.border_colour:equ $ + 1
+        and     0               ; set colour on high edge (7T)
+        endm
+
+        endif
+
+        ifdef LOADER_THEME_TRINIDAD
+        ;; Searching: black/red
+        ;; Pilot/sync:black/white
+        ;; Data:      black/red/white
+        ;;
+        ;; Data border colour changes per byte.
+
+        macro theme_new_byte    ; 33T, one T-state less than sample loop cycle
+        ld      a,(.border_colour) ; copy existing colour into accumulator, 13T
+        xor     5                  ; switch colour (7T)
         ld      (.border_colour),a ; save new colour (13T)
         endm
 .theme_new_byte:equ 1
@@ -1025,9 +958,56 @@
 
         endif
 
+        ;; this is the default, we use it if no other theme is
+        ;; selected
         ifndef .theme_t_states
-        .error  No theme selected
+LOADER_THEME_RAINBOW:   equ 1
         endif
+        ifdef LOADER_THEME_RAINBOW
+        ;; Searching: black/red
+        ;; Pilot/sync:black/green; black/white with ROM timings
+        ;; Data:      black/rainbow derived from bits being loaded
+
+        macro set_searching_border
+        ;; A is 0 when this macro is executed, so this line
+        ;; sets .border_instruction to NOP
+        ld      (.border_instruction),a ; NOP
+        ld      a,2                     ; mask for red
+        ld      (.border_mask),a
+        endm
+
+        macro set_pilot_border
+        ld      a,4                     ; mask for green
+        ifdef   LOADER_SUPPORT_ROM_TIMINGS
+        jr      c,.pilot_border_fast    ; jump forward if fast timings in use
+        ld      a,7                     ; mask for white
+.pilot_border_fast:
+        endif
+        ld      (.border_mask),a
+        endm
+
+        macro set_data_border
+        ;; sets border instruction to AND C, combining the
+        ;; value in the accumulator with the bits currently
+        ;; being loaded
+        ld      a,0xa1                     ; AND C
+        ld      (.border_instruction),a
+        ld      a,7                        ; mask for all colour bits
+        ld      (.border_mask),a
+        endm
+
+.theme_t_states:equ 19          ; "standard" theme overhead
+        macro border
+        rla                     ; move EAR bit into carry flag (4T)
+        sbc     a,a             ; A=0xFF on high edge, 0 on low edge (4T)
+.border_instruction:
+        nop                     ; room for a one-byte instruction (4T)
+.border_mask:equ $+1
+        and     0               ; mask only the lowest three bits of A (7T)
+        endm
+
+        endif
+
         if      .theme_t_states > 25
         .error  Theme imposes too much overhead
         endif

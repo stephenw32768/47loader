@@ -1,4 +1,4 @@
-        ;; 47loader (c) Stephen Williams 2013
+        ;; 47loader (c) Stephen Williams 2013-2015
         ;; See LICENSE for distribution terms
 
 loader_start:
@@ -227,14 +227,10 @@ loader_resume:
 .read_pilot_edge:
         ld      b,.timing_constant_pilot ; (7T)
 .read_edge:
-        ifdef   .theme_delay
-        call    .theme_delay      ; 226T if theme is playing ball
-        else
         ;; delay loop consumes 226T
         ld      a,14              ; prepare delay loop (7T)
         dec     a                 ; (4T)
         jr      nz,$-1            ; (12T when taken, 7T when not)
-        endif
         ld      a,0x7f            ; read port 0x7ffe (7T)
         in      a,(0xfe)          ; (11T)
         ifndef LOADER_IGNORE_BREAK
