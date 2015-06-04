@@ -1,6 +1,5 @@
-// 47loader (c) Stephen Williams 2013
+// 47loader (c) Stephen Williams 2013-2015
 // See LICENSE for distribution terms
-
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,32 +7,28 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-
 using BlockHeader = FortySevenLoader.Tzx.TurboBlockHeader;
 
 namespace FortySevenLoader
 {
   /// <summary>
-/// Low-level "mastering" tool for 47loader.
-/// </summary>
+  /// Low-level "mastering" tool for 47loader.
+  /// </summary>
   public static class FortySevenLoaderTzx
   {
     internal const int TStatesPerMillisecond = 3500;
-
     // pulse lengths, notionally constant
     internal static readonly HighLow16 ZeroPulse = Pulse.Zero();
     internal static readonly HighLow16 OnePulse = Pulse.One();
     internal static readonly HighLow16 PilotPulse = Pulse.Pilot;
-
     internal static readonly HighLow16 PilotPulseCount =
       (ushort)(1000 * TStatesPerMillisecond / PilotPulse);
     // this is used for embedding tiny pilots for instascreen and
     // progressive loading
     internal static readonly HighLow16 TinyPilotPulseCount = new HighLow16(2);
-
     private static readonly List<byte> _data = new List<byte>();
-
-    private static readonly BlockHeader _blockHeader = new BlockHeader {
+    private static readonly BlockHeader _blockHeader = new BlockHeader
+    {
       PilotPulse = FortySevenLoaderTzx.PilotPulse,
       PilotPulseCount = FortySevenLoaderTzx.PilotPulseCount,
       SyncPulse0 = FortySevenLoaderTzx.ZeroPulse,
@@ -42,39 +37,39 @@ namespace FortySevenLoader
       OnePulse = FortySevenLoaderTzx.OnePulse,
       Pause = new HighLow16(250)
     };
-
     // mutable bits
     private static Stream _tapefile;
     private static bool _reverse;
     private static bool _noHeader;
     private static string _outputFileName;
     private static ushort _progressive;
+    private static byte? _countdownStart;
     private static Action WriteData = WriteData_Simple;
     private static DynamicTable _dynamicTable;
-
     // parses string into integer
     static T ParseInteger<T>(string s)
     {
-      try {
-      T rv = (T)Convert.ChangeType(s, typeof(T));
-      return rv;
-    } catch {
+      try
+      {
+        T rv = (T)Convert.ChangeType(s, typeof(T));
+        return rv;
+      } catch
+      {
         Console.Error.WriteLine("Bad integer: " + s);
         Die();
         return default(T);
       }
     }
-
     // parses options, returns array of file names
     static string[] ParseArguments(string[] args)
     {
       Action<sbyte> doExtraCycles = delegate(sbyte cycles)
       {
-         HighLow16 new0 = Pulse.Zero(cycles);
-         HighLow16 new1 = Pulse.One(cycles);
-         _blockHeader.PilotPulse = Pulse.Pilot;
-         _blockHeader.SyncPulse0 = _blockHeader.ZeroPulse = new0;
-         _blockHeader.SyncPulse1 = _blockHeader.OnePulse = new1;
+        HighLow16 new0 = Pulse.Zero(cycles);
+        HighLow16 new1 = Pulse.One(cycles);
+        _blockHeader.PilotPulse = Pulse.Pilot;
+        _blockHeader.SyncPulse0 = _blockHeader.ZeroPulse = new0;
+        _blockHeader.SyncPulse1 = _blockHeader.OnePulse = new1;
       };
       string pilot = null;
 
@@ -161,7 +156,7 @@ namespace FortySevenLoader
                              (BindingFlags.Static | BindingFlags.NonPublic)
                              where field.FieldType == typeof(DynamicTable)
                              where field.Name.Equals(loadTypeName,
-                                  StringComparison.OrdinalIgnoreCase)
+                                                     StringComparison.OrdinalIgnoreCase)
                              select (DynamicTable)field.GetValue(null))
               .FirstOrDefault();
             if (_dynamicTable == null)
@@ -181,6 +176,41 @@ namespace FortySevenLoader
             }
             WriteData = WriteData_Progressive;
             break;
+
+          case "countdown":
+            // next arg is number of progressive chunks, optionally
+            // followed by the number at which to start the countdown
+            var split = args[++i].Split(':');
+            if (split.Length < 1 || split.Length > 2)
+              goto badCountdown;
+            switch (split.Length)
+            {
+              case 1:
+                // start countdown at the first specified block
+                split = new[] { split[0], split[0] };
+                break;
+              case 2:
+                break;
+              default:
+                goto badCountdown;
+            }
+            checked
+            {
+              int countdownBlocks = ParseInteger<int>(split[0]);
+              int countdownStart = ParseInteger<int>(split[1]);
+
+              if (countdownBlocks < 1 || countdownBlocks > 99)
+                goto badCountdown;
+              if (countdownStart < countdownBlocks || countdownStart > 99)
+                goto badCountdown;
+              _progressive = (byte)countdownBlocks;
+              _countdownStart = (byte)countdownStart;
+            }
+            WriteData = WriteData_Progressive;
+            break;
+            badCountdown:
+            Console.Error.WriteLine("bad countdown argument");
+            goto die;
 
           case "output":
             // next arg is name of file to which to write
@@ -210,7 +240,8 @@ namespace FortySevenLoader
               _blockHeader.OnePulse = Pulse.Rom.One;
             }
             // recompute pilot pulse count
-            if (pilot == null) pilot = "standard";
+            if (pilot == null)
+              pilot = "standard";
             break;
 
           default:
@@ -225,27 +256,32 @@ namespace FortySevenLoader
       Die();
       return null;
     }
-
     // prints usage and exists unsuccessfully
     static void Die()
     {
       Console.Error.WriteLine(@"Usage: 47loader-tzx [options] file [file ...]
 
 Options:
--fancyscreen s: create a fancy screen load for use with 47loader_dynamic
-                See: https://code.google.com/p/47loader/wiki/FancyScreen
--extracycles n: additional 34T cycles to add to timings.  May be negative
--instascreen  : create a screen block for use with 47loader_instascreen
--noheader     : omit the TZX file header (automatically selected if output
-                file already exists)
--output       : name of file to write; if not specified, writes to standard
-                output.  Appends to file if it already exists
--pause n      : pause n milliseconds after block
--pilot n      : length of pilot in milliseconds, or a string:
-                ""standard"", ""short"" or ""resume""
--progressive n: create a progressively-loaded block with n chunks
--reverse      : reverse the block
--speed s      : desired speed, defaults to ""standard""
+-countdown n[:s]: create a progressively-loaded block with n chunks for use
+                  with 47loader_countdown.  If s is specified, the countdown
+                  begins at this number.  n and s must be 99 or smaller, and
+                  s may not be larger than n
+-fancyscreen s  : create a fancy screen load for use with 47loader_dynamic
+                  See: https://code.google.com/p/47loader/wiki/FancyScreen
+-extracycles n  : additional 34T cycles to add to timings.  May be negative
+-instascreen    : create a screen block for use with 47loader_instascreen
+-noheader       : omit the TZX file header (automatically selected if output
+                  file already exists)
+-output         : name of file to write; if not specified, writes to standard
+                  output.  Appends to file if it already exists
+-pause n        : pause n milliseconds after block
+-pilot n        : length of pilot in milliseconds, or a string:
+                  ""standard"", ""short"" or ""resume""
+-progressive n  : create a progressively-loaded block with n chunks for use
+                  with 47loader_progressive_simple or
+                  47loader_progressive_meter
+-reverse        : reverse the block
+-speed s        : desired speed, defaults to ""standard""
 
 The -speed option is a friendlier way of altering the timings than
 -extracycles.  The available speeds are:
@@ -262,7 +298,6 @@ rom          |                 | 855T/1710T
 ");
       Environment.Exit(1);
     }
-
     // opens the output file or stream
     private static Stream OpenOutput()
     {
@@ -273,20 +308,19 @@ rom          |                 | 855T/1710T
       str.Seek(0, SeekOrigin.End);
       return str;
     }
-
     // normal implementation of WriteData for simple blocks
     private static void WriteData_Simple()
     {
       Block block = new Block(_blockHeader, _data);
       block.WriteBlock(_tapefile);
     }
-
     // WriteData implementation for progressive loads
     private static void WriteData_Progressive()
     {
       Block block;
 
-      checked {
+      checked
+      {
         // calculate lengths of chunks; should be as even as possible
         var lengths = (from i in Enumerable.Range(0, _progressive)
                        let l = (ushort)(_data.Count / _progressive)
@@ -295,23 +329,36 @@ rom          |                 | 855T/1710T
         for (int i = 0; i < remainder; i++)
           lengths[i] += 1;
         // each block apart from the last one contains the length of
-      // the next at the end; these extra two bytes need including
-      // in the lengths
+        // the next at the end; these extra two bytes need including
+        // in the lengths
         for (int i = 0; i < lengths.Length - 1; i++)
           lengths[i] += 2;
 
         // first "bootstrap" block is just the length of the first real
-      // block
-        block = new Block(_blockHeader.DeepCopy(), lengths[0]);
+        // block.  If -countdown is in use, it is followed by the
+        // countdown start number and the total number of blocks, both
+        // in BCD format
+        IEnumerable<byte> firstBlockData = lengths[0];
+        if (_countdownStart != null)
+        {
+          var countdownExtraBytes = new byte[]
+          {
+            ToBinaryCodedDecimal((byte)_countdownStart),
+            ToBinaryCodedDecimal((byte)_progressive)
+          };
+          firstBlockData = firstBlockData.Concat(countdownExtraBytes);
+        }
+        block = new Block(_blockHeader.DeepCopy(), firstBlockData);
         block.BlockHeader.Pause = HighLow16.Zero;
         block.WriteBlock(_tapefile);
 
         // each chunk includes the length of the next block at the end
         int bytesDone = 0, byteCount;
-        for (int i = 0; i < (_progressive - 1); i++) {
+        for (int i = 0; i < (_progressive - 1); i++)
+        {
           // the last two bytes in the block are the length of the
-        // next, so we don't include them in the number of bytes
-        // to take from _data
+          // next, so we don't include them in the number of bytes
+          // to take from _data
           byteCount = (ushort)lengths[i] - 2;
           block = new Block(_blockHeader.DeepCopy(),
                             _data.Skip(bytesDone).Take(byteCount)
@@ -322,7 +369,7 @@ rom          |                 | 855T/1710T
           bytesDone += byteCount;
         }
         // except the very last chunk, of course; that's just data
-      // on its own, and doesn't have its pause forced to zero
+        // on its own, and doesn't have its pause forced to zero
         byteCount = (ushort)lengths.Last();
         block = new Block(_blockHeader.DeepCopy(),
                           _data.Skip(bytesDone).Take(byteCount));
@@ -330,11 +377,11 @@ rom          |                 | 855T/1710T
         block.WriteBlock(_tapefile);
       }
     }
-
     // WriteData implementation for instascreens
     private static void WriteData_Instascreen()
     {
-      if (_data.Count != 6912) {
+      if (_data.Count != 6912)
+      {
         Console.Error.WriteLine("not a 6912 byte screen");
         Environment.Exit(1);
       }
@@ -349,7 +396,7 @@ rom          |                 | 855T/1710T
       block.BlockHeader.Pause = 0;
       block.WriteBlock(_tapefile);
       // pulses for the loader to read through while it blits
-    // the attrs
+      // the attrs
       const int shortPulseCount = 17;
       const ushort shortPulseLength = 1280;
       const int pilotPulseCount = 12;
@@ -359,14 +406,16 @@ rom          |                 | 855T/1710T
         .Concat(from i in Enumerable.Range(0, pilotPulseCount)
                 select _blockHeader.PilotPulse).ToArray();
       var count = (byte)pulses.Length;
-      var bytes = new[] { (byte)0x13, // TZX block ID for pulse sequence
-        count }.Concat(from pulse in pulses
+      var bytes = new[]
+      { (byte)0x13, // TZX block ID for pulse sequence
+        count
+      }.Concat(from pulse in pulses
                      from b in pulse
                      select b).ToArray();
       _tapefile.Write(bytes, 0, bytes.Length);
-    //*/
-    // one pulse per block, for test/debug:
-    /*
+      //*/
+      // one pulse per block, for test/debug:
+      /*
     foreach (var pulse in (from i in Enumerable.Range(0, shortPulseCount)
                            select new HighLow16(shortPulseLength))
              .Concat(from i in Enumerable.Range(0, pilotPulseCount)
@@ -375,32 +424,46 @@ rom          |                 | 855T/1710T
       _tapefile.Write(bytes, 0, bytes.Length);
     }
     //*/
-  }
-
+    }
     // WriteData implementation for fancy screens
     private static void WriteData_FancyScreen()
     {
       FancyScreen.WriteData(_tapefile, _dynamicTable, _data, _blockHeader);
     }
 
+    // converts a byte to BCD
+    private static byte ToBinaryCodedDecimal(byte input)
+    {
+      int tens = input / 10;
+      int units = input % 10;
+      int bcd = (tens * 16) + units;
+      return checked((byte)bcd);
+    }
+
     public static int Main(string[] args)
     {
-      if (args.Length < 1) {
+      if (args.Length < 1)
+      {
         Die();
         return 1;
       }
 
-      try {
+      try
+      {
         var files = ParseArguments(args);
 
         using (var data = new MemoryStream())
-        using (_tapefile = OpenOutput()) {
-          for (int i = 0; i < files.Length; i++) {
-            if (!File.Exists(files[i])) {
+        using (_tapefile = OpenOutput())
+        {
+          for (int i = 0; i < files.Length; i++)
+          {
+            if (!File.Exists(files[i]))
+            {
               Console.Error.WriteLine("File not found: " + files[i]);
               Die();
             }
-            using (var file = File.OpenRead(files[i])) {
+            using (var file = File.OpenRead(files[i]))
+            {
               file.CopyTo(data);
             }
           }
@@ -413,7 +476,8 @@ rom          |                 | 855T/1710T
           WriteData();
         }
       }
-      catch (Exception e) {
+      catch (Exception e)
+      {
         Console.Error.WriteLine
           ("{0}: {1}", e.GetType().FullName, e.Message);
         Console.Error.WriteLine(e.StackTrace);
