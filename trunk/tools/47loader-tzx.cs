@@ -336,15 +336,15 @@ rom          |                 | 855T/1710T
 
         // first "bootstrap" block is just the length of the first real
         // block.  If -countdown is in use, it is followed by the
-        // countdown start number and the total number of blocks, both
-        // in BCD format
+        // countdown stop and start numbers, both in BCD format
         IEnumerable<byte> firstBlockData = lengths[0];
         if (_countdownStart != null)
         {
+          var countdownStop = _countdownStart - _progressive;
           var countdownExtraBytes = new byte[]
           {
-            ToBinaryCodedDecimal((byte)_countdownStart),
-            ToBinaryCodedDecimal((byte)_progressive)
+            ToBinaryCodedDecimal((byte)countdownStop),
+            ToBinaryCodedDecimal((byte)_countdownStart)
           };
           firstBlockData = firstBlockData.Concat(countdownExtraBytes);
         }
