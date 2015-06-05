@@ -122,6 +122,11 @@ loader_countdown_resume:
         ld      e,(ix-2)        ; and the low byte
         dec     ix              ; reposition IX before the block length
         dec     ix
+        ifdef LOADER_COUNTDOWN_RESTORE_PILOT_BORDER
+        xor     a
+        set_searching_border
+        set_pilot_border
+        endif
         call    loader_resume
         pop     bc              ; restore saved counter
         jr      .countdown_loop
