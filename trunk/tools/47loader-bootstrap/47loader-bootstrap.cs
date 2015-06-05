@@ -17,6 +17,7 @@ public static class FortySevenLoaderBootstrap
 
   // options
   static string _progName = string.Empty;
+  static bool _alkatraz;
   static int _border = -1, _paper = -1, _ink = -1, _bright = -1, _clear;
   static string _inputFileName, _outputFileName;
   static int _pause = -1;
@@ -111,6 +112,9 @@ public static class FortySevenLoaderBootstrap
           if (_progName.Length > 10)
             _progName = _progName.Substring(0, 10);
           break;
+        case "alkatraz":
+          _alkatraz = true;
+          break;
         case "usr":
           var addresses = args[++i].Split(':');
           ushort clear = 0, usr = 0;
@@ -144,6 +148,13 @@ public static class FortySevenLoaderBootstrap
           Die();
           break;
       }
+
+      if (_alkatraz && _progName.Length > 6)
+      {
+        Console.Error.WriteLine
+          ("alkatraz program names may be no longer than 6 characters");
+        Die();
+      }
     }
   }
 
@@ -154,6 +165,8 @@ public static class FortySevenLoaderBootstrap
 Reads binary to embed from standard input if not specified
 
 Options:
+-alkatraz : format BASIC program name like the Alkatraz loader.  Program
+            name must be no longer than 6 characters
 -border n : border colour
 -bottom s : string to print at the bottom of the screen
 -bright n : bright attribute
@@ -184,7 +197,18 @@ Options:
       // write program header
       var headerData = new byte[19];
       // space-padded ten-byte file name at offset 2
-      Encoding.ASCII.GetBytes(_progName).CopyTo(headerData, 2);
+      var progName = _progName;
+      if (_alkatraz)
+        // AT 1,0;progName,
+        // add a leading space if fewer than 6 chars
+        progName = string.Format("{0}{1}{2}{3}{4}{5}",
+                                 (char)0x16, // AT
+                                 (char)1,
+                                 (char)0,
+                                 progName.Length < 6 ? " " : string.Empty,
+                                 progName,
+                                 (char)6); // COMMA
+      Encoding.ASCII.GetBytes(progName).CopyTo(headerData, 2);
       for (int i = 11; (i > 1) && (headerData[i] == 0); i--)
         headerData[i] = (byte)' ';
       // length of BASIC program + variables at offset 12
