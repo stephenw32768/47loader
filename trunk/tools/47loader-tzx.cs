@@ -26,6 +26,9 @@ namespace FortySevenLoader
     // this is used for embedding tiny pilots for instascreen and
     // progressive loading
     internal static readonly HighLow16 TinyPilotPulseCount = new HighLow16(2);
+    // this is for audible pilots in progressive blocks
+    internal static readonly HighLow16 BleepPilotPulseCount =
+      new HighLow16(310);
     private static readonly List<byte> _data = new List<byte>();
     private static readonly BlockHeader _blockHeader = new BlockHeader
     {
@@ -44,6 +47,7 @@ namespace FortySevenLoader
     private static string _outputFileName;
     private static ushort _progressive;
     private static byte? _countdownStart;
+    private static bool _bleep;
     private static Action WriteData = WriteData_Simple;
     private static DynamicTable _dynamicTable;
     // parses string into integer
@@ -212,6 +216,10 @@ namespace FortySevenLoader
             Console.Error.WriteLine("bad countdown argument");
             goto die;
 
+          case "bleep":
+            _bleep = true;
+            break;
+
           case "output":
             // next arg is name of file to which to write
             _outputFileName = args[++i];
@@ -262,6 +270,7 @@ namespace FortySevenLoader
       Console.Error.WriteLine(@"Usage: 47loader-tzx [options] file [file ...]
 
 Options:
+-bleep          : join progressive/countdown blocks with audible pilots
 -countdown n[:s]: create a progressively-loaded block with n chunks for use
                   with 47loader_countdown.  If s is specified, the countdown
                   begins at this number.  n and s must be 99 or smaller, and
@@ -363,7 +372,9 @@ rom          |                 | 855T/1710T
           block = new Block(_blockHeader.DeepCopy(),
                             _data.Skip(bytesDone).Take(byteCount)
                             .Concat(lengths[i + 1]));
-          block.BlockHeader.PilotPulseCount = TinyPilotPulseCount;
+          block.BlockHeader.PilotPulseCount = _bleep
+            ? BleepPilotPulseCount
+            : TinyPilotPulseCount;
           block.BlockHeader.Pause = HighLow16.Zero;
           block.WriteBlock(_tapefile);
           bytesDone += byteCount;
@@ -373,7 +384,9 @@ rom          |                 | 855T/1710T
         byteCount = (ushort)lengths.Last();
         block = new Block(_blockHeader.DeepCopy(),
                           _data.Skip(bytesDone).Take(byteCount));
-        block.BlockHeader.PilotPulseCount = TinyPilotPulseCount;
+        block.BlockHeader.PilotPulseCount = _bleep
+          ? BleepPilotPulseCount
+          : TinyPilotPulseCount;
         block.WriteBlock(_tapefile);
       }
     }
