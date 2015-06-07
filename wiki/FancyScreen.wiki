@@ -44,6 +44,7 @@ Define `LOADER_DYNAMIC_FORWARDS_ONLY` and `LOADER_DYNAMIC_ONE_BYTE_LENGTHS` when
 || `fa_btt` || Loads the attributes forwards, then the pixmap bottom-to-top instead of in thirds. || Backwards ||
 || `fa_rp` || Loads the attributes forwards, then the pixmap backwards. || Backwards ||
 || `fa_ttb` || Loads the attributes forwards, then the pixmap top-to-bottom instead of in thirds. || Forwards ||
+|| `fp_abidi` || Loads the pixmap forwards, then the attributes bidirectionally. || Forwards ||
 || `fp_as2` || Loads the pixmap forwards, then the attributes in blocks of 2x2 squares. || Forwards ||
 || `fp_as4` || Loads the pixmap forwards, then the attributes in blocks of 4x4 squares. || Forwards ||
 || `fp_as8` || Loads the pixmap forwards, then the attributes in blocks of 8x8 squares. || Forwards ||
