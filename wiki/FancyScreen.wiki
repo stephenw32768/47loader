@@ -28,7 +28,7 @@ Define `LOADER_CHANGE_DIRECTION` when using these effects.
 
 == Linear screen loads ==
 
-Define `LOADER_DYNAMIC_FORWARDS_ONLY` and `LOADER_DYNAMIC_FIXED_LENGTH` when using these effects.  `LOADER_DYNAMIC_FIXED_LENGTH` must be defined with the value output by `47loader-tzx`.
+Define `LOADER_DYNAMIC_FORWARDS_ONLY` and `LOADER_DYNAMIC_FIXED_LENGTH` when using these effects.  `LOADER_DYNAMIC_FIXED_LENGTH` must be defined with the value output by 47loader-tzx.
 
 || *`-fancyscreen` argument* || *Effect* || *Loader direction after the load is complete* || *`LOADER_DYNAMIC_FIXED_LENGTH` value* ||
 || `linear_btt` || The screen loads in a non-interlaced fashion from bottom to top. || Forwards || 32 ||
