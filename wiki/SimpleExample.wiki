@@ -63,6 +63,15 @@ For aesthetic reasons, you might like the game block to have a much shorter pilo
 
 This variation reduces the pause after the screen to a tenth of a second, and reduces the length of the second block's pilot tone to approximately three-tenths of a second.
 
+Or, how about:
+
+{{{
+47loader-tzx -output mygame.tzx -pilot click -pause 100 mygame.scr
+47loader-tzx -output mygame.tzx -pilot click4 mygame.bin
+}}}
+
+This variation gives a clicking pilot tone.  The screen's pilot tone has eight clicks, the default.  The game's tone has four clicks.  You can have as many clicks as you want, within reason; just place the number immediately after the `click` parameter, without any leading spaces.
+
 = A backwards-loading screen =
 
 In this example, we will load the screen backwards.  The attributes appear first, then the pixmap loads from the bottom of the screen.  After that, the game loads conventionally.  The code is only a little bit more complicated:
