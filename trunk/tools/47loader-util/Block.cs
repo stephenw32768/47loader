@@ -117,13 +117,31 @@ namespace FortySevenLoader
 
       // include sanity byte in block
       _data.Insert(0, _sanity);
+
+      // write clicking pilot if requested
+      for (var i = 0;
+           _blockHeader.PilotPulseCount >=300 &&
+           // ^^^ don't write clicks for "resume" blocks
+           i < _blockHeader.PilotClickCount;
+           i++)
+      {
+        // this is a short pilot block
+        tapefile.WriteByte((byte)0x12); // pure tone
+        tapefile.WriteByte(_blockHeader.PilotPulse.Low);
+        tapefile.WriteByte(_blockHeader.PilotPulse.High);
+        tapefile.WriteByte(_blockHeader.PilotPulseCount.Low);
+        tapefile.WriteByte(_blockHeader.PilotPulseCount.High);
+        // this is a click, consisting of two click pulses
+        tapefile.WriteByte((byte)0x12); // pure tone
+        tapefile.WriteByte(_blockHeader.PilotClickPulse.Low);
+        tapefile.WriteByte(_blockHeader.PilotClickPulse.High);
+        tapefile.WriteByte((byte)2);
+        tapefile.WriteByte((byte)0);
+      }
       
       // write block header
-      //if (includePilot)
       var blockHeader = _blockHeader.ToArray();
       tapefile.Write(blockHeader, 0, blockHeader.Length);
-      //else
-      //   _tapefile.Write(_pureDataBlockHeader, 0, _pureDataBlockHeader.Length);
       // write block length
       block = _data.ToArray();
       tapefile.WriteByte((byte)(block.Length & 255));

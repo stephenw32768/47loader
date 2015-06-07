@@ -32,6 +32,7 @@ namespace FortySevenLoader
     private static readonly List<byte> _data = new List<byte>();
     private static readonly BlockHeader _blockHeader = new BlockHeader
     {
+      PilotClickPulse = Pulse.Rom.Pilot,
       PilotPulse = FortySevenLoaderTzx.PilotPulse,
       PilotPulseCount = FortySevenLoaderTzx.PilotPulseCount,
       SyncPulse0 = FortySevenLoaderTzx.ZeroPulse,
@@ -76,6 +77,7 @@ namespace FortySevenLoader
         _blockHeader.SyncPulse1 = _blockHeader.OnePulse = new1;
       };
       string pilot = null;
+      bool noFixedLength = false;
 
       for (int i = 0; i < args.Length; i++)
       {
@@ -84,12 +86,16 @@ namespace FortySevenLoader
           // we've come to the end of the options, all the rest
           // are files
 
+          if (noFixedLength && (_dynamicTable != null))
+            _dynamicTable.DisableFixedLength();
+
           if (!string.IsNullOrWhiteSpace(pilot))
           {
             checked
             {
-              HighLow16 pilotPulses;
-              switch (pilot.ToLower())
+              HighLow16 pilotPulses, pilotClicks = 0;
+              pilot = pilot.ToLower();
+              switch (pilot)
               {
                 case "resume":
                   pilotPulses = TinyPilotPulseCount;
@@ -101,6 +107,25 @@ namespace FortySevenLoader
                   pilot = "1000"; // one second
                   goto default; // fall through
                 default:
+                  if (pilot.StartsWith("click"))
+                  {
+                    if (_blockHeader.PilotPulse == Pulse.Rom.Pilot)
+                    {
+                      Console.Error.WriteLine
+                        ("clicking pilots may not be used with ROM timings");
+                      Die();
+                    }
+
+                    // see if a click count was appended, default to 8 if not
+                    var clickStr = pilot.Substring(5).Trim();
+                    if (clickStr.Length > 0)
+                      pilotClicks = ParseInteger<ushort>(clickStr);
+                    if (pilotClicks < 1)
+                      pilotClicks = 8;
+                    pilotPulses = 300;
+                    break;
+                  }
+
                   int ms = ParseInteger<int>(pilot);
                   int tstates = ms * TStatesPerMillisecond;
                   pilotPulses =
@@ -110,6 +135,7 @@ namespace FortySevenLoader
                   break;
               }
               _blockHeader.PilotPulseCount = pilotPulses;
+              _blockHeader.PilotClickCount = pilotClicks;
             }
           }
 
@@ -122,12 +148,17 @@ namespace FortySevenLoader
             _noHeader = true;
             break;
 
+          case "nofixedlength":
+            noFixedLength = true;
+            break;
+
           case "reverse":
             _reverse = true;
             break;
 
           case "pilot":
-            // next arg is pilot length in milliseconds
+            // next arg is pilot length in milliseconds, or a string, or
+            // click count
             pilot = args[++i];
             // defer calculation until end of option parsing in case
             // ROM timings are requested and we're going to change
@@ -285,7 +316,7 @@ Options:
                   output.  Appends to file if it already exists
 -pause n        : pause n milliseconds after block
 -pilot n        : length of pilot in milliseconds, or a string:
-                  ""standard"", ""short"" or ""resume""
+                  ""standard"", ""short"", ""resume"" or ""click""
 -progressive n  : create a progressively-loaded block with n chunks for use
                   with 47loader_progressive_simple or
                   47loader_progressive_meter

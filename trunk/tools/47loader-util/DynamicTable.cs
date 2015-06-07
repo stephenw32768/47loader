@@ -63,6 +63,27 @@ namespace FortySevenLoader
       public readonly bool ChangeDirection;
 
       /// <summary>
+      /// Splits the entry into chunks of the specified size.
+      /// </summary>
+      /// <param name="chunkSize">
+      /// The chunk size.  Must be a factor of <see cref="Length"/>.
+      /// </param>
+      public IEnumerable<Entry> Split(byte chunkSize)
+      {
+        if (Length % chunkSize != 0)
+          throw new InvalidOperationException("bad chunk size");
+        if (ChangeDirection)
+          throw new InvalidOperationException("can't split");
+
+        for (var newAddr = Address;
+             newAddr < (Address + Length);
+             newAddr += chunkSize)
+        {
+          yield return new Entry(newAddr, chunkSize);
+        }
+      }
+
+      /// <summary>
       /// Gets an enumerator over the bytes comprising the table entry.
       /// </summary>
       /// <returns>
@@ -108,8 +129,30 @@ namespace FortySevenLoader
     /// </param>
     public DynamicTable(IEnumerable<DynamicTable.Entry> entries)
     {
+      bool changeDirection = false;
       foreach (var entry in entries)
+      {
+        changeDirection |= entry.ChangeDirection;
         Add(entry);
+      }
+      if (!changeDirection &&
+        Items.Select(entry => entry.Length).Distinct().Count() == 1)
+        IsFixedLength = true;
+    }
+
+    /// <summary>
+    /// Declares whether the table is "fixed length" -- every entry has
+    /// the same length and there are no direction changes.
+    /// </summary>
+    public bool IsFixedLength { get; private set; }
+
+    /// <summary>
+    /// Disables the fixed-length optimization if it would otherwise be
+    /// enabled.
+    /// </summary>
+    public void DisableFixedLength()
+    {
+      IsFixedLength = false;
     }
 
     /// <summary>
@@ -120,7 +163,16 @@ namespace FortySevenLoader
     /// </returns>
     IEnumerator<byte> IEnumerable<byte>.GetEnumerator()
     {
-      if (this.Any<Entry>(entry => entry.Length > 127))
+      if (IsFixedLength)
+      {
+        // just write the addresses in big-endian format
+        foreach (var entry in this)
+        {
+          yield return entry.Address.High;
+          yield return entry.Address.Low;
+        }
+      }
+      else if (this.Any<Entry>(entry => entry.Length > 127))
       {
         foreach (var entry in this)
           foreach (var b in entry)

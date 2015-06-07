@@ -191,6 +191,21 @@ namespace FortySevenLoader
     );
 
     /// <summary>
+    /// Table defining a screen load with a forwards pixmap
+    /// followed by bidirectional attributes.
+    /// </summary>
+    internal static readonly DynamicTable FP_ABIDI = new DynamicTable(
+      new[] { new DynamicTable.Entry(16384, 6144) }
+    // do the odd-numbered attribute rows
+    .Concat(from row in Enumerable.Range(0, 24)
+            where row % 2 == 0
+            select MakeBidiEntry((byte)row))
+    // do the even-numbered attribute rows
+    .Concat((from row in Enumerable.Range(0, 24)
+             where row % 2 == 1
+             select MakeBidiEntry((byte)row)).Reverse()));
+
+    /// <summary>
     /// Table defining a top-to-bottom pixmap load followed by forwards
     /// attributes.
     /// </summary>
@@ -284,6 +299,20 @@ namespace FortySevenLoader
     /// </summary>
     internal static readonly DynamicTable Linear_D =
       new DynamicTable(MakeLinear(LinearMode.Diverge));
+
+    /// <summary>
+    /// Table defining a linear screen load starting at the top and
+    /// bottom, meeting in the middle, in blocks of 4x4 squares.
+    /// </summary>
+    internal static readonly DynamicTable Linear_S4 =
+      new DynamicTable(MakeLinear(LinearMode.S4));
+    
+    /// <summary>
+    /// Table defining a linear screen load starting at the top and
+    /// bottom, meeting in the middle, in blocks of 8x8 squares.
+    /// </summary>
+    internal static readonly DynamicTable Linear_S8 =
+      new DynamicTable(MakeLinear(LinearMode.S8));
 
     #endregion
 
@@ -488,7 +517,8 @@ namespace FortySevenLoader
       }
     }
 
-    private enum LinearMode { TopToBottom, BottomToTop, Converge, Diverge }
+    private enum LinearMode
+      { TopToBottom, BottomToTop, Converge, Diverge, S4, S8 }
 
     /// <summary>
     /// Constructs a sequence of
@@ -575,6 +605,93 @@ namespace FortySevenLoader
             }
           }
           break;
+
+        case LinearMode.S4:
+        case LinearMode.S8:
+          // we divide each row into n, depending on the size of the square.
+          // We do the zeroth, second etc. chunks top-to-bottom and the first,
+          // third etc. chunks bottom-to-top.  When we've done a square, we
+          // do the first, third etc. chunks top-to-bottom and the zeroth,
+          // second etc. chunks bottom-to-top.  The top-to-bottom and bottom-
+          // to-top rows are interleaved, like with a Converge
+          byte size = mode == LinearMode.S8 ? (byte)8 : (byte)4;
+          List<DynamicTable.Entry>
+          ttbPixmap = new List<DynamicTable.Entry>(),
+          ttbAttrs = new List<DynamicTable.Entry>(),
+          bttPixmap = new List<DynamicTable.Entry>(),
+          bttAttrs = new List<DynamicTable.Entry>(),
+          evenPixmap = ttbPixmap,
+          oddPixmap = bttPixmap,
+          evenAttrs = ttbAttrs,
+          oddAttrs = bttAttrs;
+          for (int attrIndex = 0; attrIndex < attrs.Count; attrIndex++)
+          {
+            var split = attrs[attrIndex].Split(size).ToArray();
+            for (int splitIndex = 0; splitIndex < split.Length; splitIndex++)
+            {
+              if (splitIndex % 2 == 0)
+                evenAttrs.Add(split[splitIndex]);
+              else
+                oddAttrs.Add(split[splitIndex]);
+            }
+
+            // now the corresponding pixmap rows, same deal
+            for (int pixmapIndex = attrIndex * 8, x = 0;
+                 x < 8;
+                 pixmapIndex++, x++)
+            {
+              split = pixmap[pixmapIndex].Split(size).ToArray();
+              for (int splitIndex = 0; splitIndex < split.Length; splitIndex++)
+              {
+                if (splitIndex % 2 == 0)
+                  evenPixmap.Add(split[splitIndex]);
+                else
+                  oddPixmap.Add(split[splitIndex]);
+              }
+            }
+            
+            if ((attrIndex % size) == (size - 1))
+            {
+              // this was the last row of a square
+              var tmp = evenAttrs;
+              evenAttrs = oddAttrs;
+              oddAttrs = tmp;
+              tmp = evenPixmap;
+              evenPixmap = oddPixmap;
+              oddPixmap = tmp;
+            }
+          }
+
+          // bottom-to-top entries have to be done in reverse, natch
+          bttAttrs.Reverse();
+          bttPixmap.Reverse();
+
+          // now we send them interleaved.  For each attr entry, we send
+          // eight pixmap entries, alternating between TTB and BTT
+          while (ttbAttrs.Count > 0)
+          {
+            // send a row's worth of attrs
+            for (int x = 0; x < 32 / 2 / size; x++)
+            {
+              yield return ttbAttrs[0];
+              ttbAttrs.RemoveAt(0);
+              yield return bttAttrs[0];
+              bttAttrs.RemoveAt(0);
+            }
+            // now all the corresponding pixmap entries
+            for (int x = 0; x < 32 / 2 / size; x++)
+            {
+              for (int y = 0; y < 8; y++)
+              {
+                yield return ttbPixmap[0];
+                ttbPixmap.RemoveAt(0);
+                yield return bttPixmap[0];
+                bttPixmap.RemoveAt(0);
+              }
+            }
+          }
+
+          break;
       }
     }
 
@@ -643,6 +760,7 @@ namespace FortySevenLoader
         Environment.Exit(1);
       }
 
+      var fixedLength = table.IsFixedLength;
       var tableBytes = ((IEnumerable<byte>)table).ToArray();
 
       // first, write a block containg the length of the table
@@ -685,12 +803,21 @@ namespace FortySevenLoader
 
       Console.Error.WriteLine
         ("Dynamic table length: {0} bytes", tableBytes.Length);
+      if (fixedLength)
+      {
+        Console.Error.WriteLine("Define LOADER_DYNAMIC_FIXED_LENGTH EQU " +
+                                (ushort)table[0].Length);
+        return;
+      }
       if (!table.Any<DynamicTable.Entry>(entry => entry.Length > 127))
         // compact table -- need to define this
         Console.Error.WriteLine("Define LOADER_DYNAMIC_ONE_BYTE_LENGTHS");
       if (!table.Any<DynamicTable.Entry>(entry => entry.ChangeDirection))
         // defining this saves us a few bytes
         Console.Error.WriteLine("Define LOADER_DYNAMIC_FORWARDS_ONLY");
+      else
+        // remind the user to define this because I forget otherwise
+        Console.Error.WriteLine("Define LOADER_CHANGE_DIRECTION");
     }
 
     #endregion

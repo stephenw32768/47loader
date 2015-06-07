@@ -961,7 +961,9 @@
         ;; this is the default, we use it if no other theme is
         ;; selected
         ifndef .theme_t_states
+        ifndef LOADER_THEME_RAINBOW
 LOADER_THEME_RAINBOW:   equ 1
+        endif
         endif
         ifdef LOADER_THEME_RAINBOW
         ;; Searching: black/red

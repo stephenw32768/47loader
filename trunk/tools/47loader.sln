@@ -7,12 +7,19 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "47loader-util", "47loader-u
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "47loader-bootstrap", "47loader-bootstrap\47loader-bootstrap.csproj", "{8CAF55DE-F1F3-4400-9AB7-8D7182552292}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "47loader-master", "47loader-master\47loader-master.csproj", "{5782DA9C-0CF5-459A-A92D-D709087922FA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "add-battenburg", "add-battenburg\add-battenburg.csproj", "{ED488BCA-E55D-44FE-8DB5-019F730E728E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5782DA9C-0CF5-459A-A92D-D709087922FA}.Debug|x86.ActiveCfg = Debug|x86
+		{5782DA9C-0CF5-459A-A92D-D709087922FA}.Release|x86.ActiveCfg = Release|x86
+		{5782DA9C-0CF5-459A-A92D-D709087922FA}.Release|x86.Build.0 = Release|x86
 		{8CAF55DE-F1F3-4400-9AB7-8D7182552292}.Debug|x86.ActiveCfg = Debug|Any CPU
 		{8CAF55DE-F1F3-4400-9AB7-8D7182552292}.Debug|x86.Build.0 = Debug|Any CPU
 		{8CAF55DE-F1F3-4400-9AB7-8D7182552292}.Release|x86.ActiveCfg = Release|Any CPU
@@ -25,29 +32,53 @@ Global
 		{952747F6-8AB3-44B5-B547-4DB7CF1026A1}.Debug|x86.Build.0 = Debug|x86
 		{952747F6-8AB3-44B5-B547-4DB7CF1026A1}.Release|x86.ActiveCfg = Release|x86
 		{952747F6-8AB3-44B5-B547-4DB7CF1026A1}.Release|x86.Build.0 = Release|x86
+		{ED488BCA-E55D-44FE-8DB5-019F730E728E}.Debug|x86.ActiveCfg = Debug|x86
+		{ED488BCA-E55D-44FE-8DB5-019F730E728E}.Debug|x86.Build.0 = Debug|x86
+		{ED488BCA-E55D-44FE-8DB5-019F730E728E}.Release|x86.ActiveCfg = Release|x86
+		{ED488BCA-E55D-44FE-8DB5-019F730E728E}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		StartupItem = 47loader-tzx.csproj
 		Policies = $0
 		$0.TextStylePolicy = $1
-		$1.FileWidth = 78
 		$1.TabWidth = 2
 		$1.IndentWidth = 2
 		$1.inheritsSet = VisualStudio
 		$1.inheritsScope = text/plain
 		$1.scope = text/x-csharp
 		$0.CSharpFormattingPolicy = $2
+		$2.IndentSwitchBody = True
+		$2.AnonymousMethodBraceStyle = NextLine
+		$2.PropertyBraceStyle = NextLine
+		$2.PropertyGetBraceStyle = NextLine
+		$2.PropertySetBraceStyle = NextLine
+		$2.EventBraceStyle = NextLine
+		$2.EventAddBraceStyle = NextLine
+		$2.EventRemoveBraceStyle = NextLine
+		$2.StatementBraceStyle = NextLine
+		$2.ElseNewLinePlacement = DoNotCare
+		$2.CatchNewLinePlacement = DoNotCare
+		$2.FinallyNewLinePlacement = DoNotCare
+		$2.WhileNewLinePlacement = DoNotCare
+		$2.ArrayInitializerBraceStyle = NextLine
 		$2.BeforeMethodDeclarationParentheses = False
 		$2.BeforeMethodCallParentheses = False
 		$2.BeforeConstructorDeclarationParentheses = False
 		$2.BeforeDelegateDeclarationParentheses = False
 		$2.NewParentheses = False
+		$2.SpacesBeforeBrackets = False
 		$2.inheritsSet = Mono
 		$2.inheritsScope = text/x-csharp
 		$2.scope = text/x-csharp
 		$0.DotNetNamingPolicy = $3
 		$3.DirectoryNamespaceAssociation = Hierarchical
 		$3.ResourceNamePolicy = FileFormatDefault
+		$0.TextStylePolicy = $4
+		$4.FileWidth = 78
+		$4.TabWidth = 3
+		$4.inheritsSet = VisualStudio
+		$4.inheritsScope = text/plain
+		$4.scope = text/plain
 		version = 2.0
 	EndGlobalSection
 EndGlobal

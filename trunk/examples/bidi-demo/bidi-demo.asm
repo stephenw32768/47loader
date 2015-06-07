@@ -1,4 +1,4 @@
-        ;; 47loader (c) Stephen Williams 2013
+        ;; 47loader (c) Stephen Williams 2013-2015
         ;; See LICENSE for distribution terms
 
 LOADER_ABSOLUTE_ADDR:equ 32768
@@ -6,6 +6,7 @@ LOADER_THEME_RAINBOW:equ 1
 LOADER_DYNAMIC_TABLE_ADDR:equ 49152
 LOADER_RESUME:equ 1
 LOADER_CHANGE_DIRECTION:equ 1
+;LOADER_TOGGLE_BORDER:   equ 1
         include "47loader_simple_basic_embed_top.asm"
 
         ;; nothing to do besides call loader_dynamic

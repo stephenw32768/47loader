@@ -18,7 +18,7 @@ cat >>$embedded $prefix.bas
 
 # bas2tap is available from World of Spectrum:
 # http://www.worldofspectrum.org/utilities.html#other
-bas2tap -a9000 -s47loader -c $embedded $prefix.tzx
+bas2tap -a9000 -s47loader -c $embedded $prefix.tap
 
 # tapeconv is part of the Fuse distribution:
 # http://fuse-emulator.sf.net/

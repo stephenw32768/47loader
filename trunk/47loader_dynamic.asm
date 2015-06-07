@@ -1,4 +1,4 @@
-        ;; 47loader (c) Stephen Williams 2013
+        ;; 47loader (c) Stephen Williams 2013-2015
         ;; See LICENSE for distribution terms
 
         ;; "Dynamic" loader.  Loads a table of addresses and data
@@ -30,6 +30,12 @@
         ;; if defined, the table uses only a single byte to store each
         ;; length and direction change flag.  All dynamic blocks are
         ;; thus no larger than 127 bytes.
+        ;;
+        ;; LOADER_DYNAMIC_FIXED_LENGTH:
+        ;; if defined, the table contains no lengths or direction
+        ;; changes at all.  Each dynamic block has the length specified
+        ;; by this define.  So if every block is 32 bytes long, define
+        ;; LOADER_DYNAMIC_FIXED_LENGTH EQU 32.
         
 loader_dynamic:
 
@@ -80,6 +86,7 @@ loader_dynamic:
         ld      ixl,a           ; and into IX
         inc     hl              ; advance pointer
 
+        ifndef   LOADER_DYNAMIC_FIXED_LENGTH
 
         ;; next, we read the length of the data to load, again
         ;; in big-endian format
@@ -103,6 +110,19 @@ loader_dynamic:
         endif
         call    nz,loader_change_direction ; change direction if flag set
         endif
+
+        else ; LOADER_DYNAMIC_FIXED_LENGTH is defined
+
+        ;; in this case, all dynamic chunks are the same length
+        ;; and can be hard-coded.  At this point, DE is 0
+        if LOADER_DYNAMIC_FIXED_LENGTH < 256
+        ld      e,LOADER_DYNAMIC_FIXED_LENGTH ;single-byte length into DE
+        else
+        ld      de,LOADER_DYNAMIC_FIXED_LENGTH ;two-byte length into DE
+        endif
+        push    hl                             ; stack the table pointer
+
+        endif ; LOADER_DYNAMIC_FIXED_LENGTH
 
         ;; with IX and DE set up, we can load the block
         call    loader_resume   ; load the block

@@ -1,4 +1,4 @@
-// 47loader (c) Stephen Williams 2013
+// 47loader (c) Stephen Williams 2013-2015
 // See LICENSE for distribution terms
 
 using System;
@@ -33,6 +33,27 @@ namespace FortySevenLoader.Tzx
     public HighLow16 PilotPulseCount { get; set; }
 
     /// <summary>
+    /// For a clicking pilot, the length of the click pulse in T-states.
+    /// </summary>
+    /// <remarks>
+    /// Not part of a TZX turbo block header; clicking pilots are implemented
+    /// by prepending additional TZX blocks.
+    /// </remarks>
+    public HighLow16 PilotClickPulse { get; set; }
+
+    /// <summary>
+    /// For a clicking pilot, the number of clicks.  Implemented by
+    /// writing this many pilot tones of length
+    /// <see cref="PilotPulse"/> with two pulses of length
+    /// <see cref="PilotClickPulse"/> in between.
+    /// </summary>
+    /// <remarks>
+    /// Not part of a TZX turbo block header; clicking pilots are implemented
+    /// by prepending additional TZX blocks.
+    /// </remarks>
+    public HighLow16 PilotClickCount { get; set; }
+
+    /// <summary>
     /// The length of a zero pulse in T-states.
     /// </summary>
     public HighLow16 ZeroPulse { get; set; }
@@ -59,9 +80,11 @@ namespace FortySevenLoader.Tzx
         SyncPulse0 = this.SyncPulse0,
         SyncPulse1 = this.SyncPulse1,
         PilotPulse = this.PilotPulse,
+        PilotClickPulse = this.PilotClickPulse,
         ZeroPulse = this.ZeroPulse,
         OnePulse = this.OnePulse,
         PilotPulseCount = this.PilotPulseCount,
+        PilotClickCount = this.PilotClickCount,
         Pause = this.Pause
       };
     }
