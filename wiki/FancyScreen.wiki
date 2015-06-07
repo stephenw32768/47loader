@@ -199,3 +199,5 @@ LOADER_DYNAMIC_FORWARDS_ONLY:equ 1
 
         include "47loader_simple_basic_embed_bottom.asm"
 }}}
+
+If your game loads more than one screen using the "dynamic" module (for example, an initial loading screen, then a playfield screen at the very end of the load), you should use the same `-fancyscreen` option with both of them.  This is because different effects may specify conflicting options to be set at assemble time (for example, one may tell you to define `LOADER_DYNAMIC_ONE_BYTE_LENGTHS` and the other not).  However, if you really do want to use different effects, `linear_ttb`, `linear_btt`, `linear_c` and `linear_d` do all specify the same options and are thus safe to mix and match.
