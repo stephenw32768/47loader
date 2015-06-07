@@ -28,15 +28,15 @@ Define `LOADER_CHANGE_DIRECTION` when using these effects.
 
 == Linear screen loads ==
 
-Define `LOADER_DYNAMIC_FORWARDS_ONLY` and `LOADER_DYNAMIC_ONE_BYTE_LENGTHS` when using these effects.
+Define `LOADER_DYNAMIC_FORWARDS_ONLY` and `LOADER_DYNAMIC_FIXED_LENGTH` when using these effects.  `LOADER_DYNAMIC_FIXED_LENGTH` must be defined with the value output by `47loader-tzx`.
 
-|| *`-fancyscreen` argument* || *Effect* || *Loader direction after the load is complete* ||
-|| `linear_btt` || The screen loads in a non-interlaced fashion from bottom to top. || Forwards ||
-|| `linear_c` || The screen loads in a non-interlaced fashion from the top and bottom, meeting in the middle. || Forwards ||
-|| `linear_d` || The screen loads in a non-interlaced fashion from the middle, spreading to the top and bottom. || Forwards ||
-|| `linear_s4` || The screen loads in a non-interlaced fashion from the top and bottom, in 4x4 square blocks. || Forwards ||
-|| `linear_s8` || The screen loads in a non-interlaced fashion from the top and bottom, in 8x8 square blocks. || Forwards ||
-|| `linear_ttb` || The screen loads in a non-interlaced fashion from top to bottom. || Forwards ||
+|| *`-fancyscreen` argument* || *Effect* || *Loader direction after the load is complete* || *`LOADER_DYNAMIC_FIXED_LENGTH` value* ||
+|| `linear_btt` || The screen loads in a non-interlaced fashion from bottom to top. || Forwards || 32 ||
+|| `linear_c` || The screen loads in a non-interlaced fashion from the top and bottom, meeting in the middle. || Forwards || 32 ||
+|| `linear_d` || The screen loads in a non-interlaced fashion from the middle, spreading to the top and bottom. || Forwards || 32 ||
+|| `linear_s4` || The screen loads in a non-interlaced fashion from the top and bottom, in 4x4 square blocks. || Forwards || 4 ||
+|| `linear_s8` || The screen loads in a non-interlaced fashion from the top and bottom, in 8x8 square blocks. || Forwards || 8 ||
+|| `linear_ttb` || The screen loads in a non-interlaced fashion from top to bottom. || Forwards || 32 ||
 
 == Other effects ==
 
@@ -82,6 +82,7 @@ You will need to define some symbols:
   * `LOADER_RESUME`: "dynamic" requires "resume", so you must define this symbol.
   * `LOADER_DYNAMIC_FORWARDS_ONLY`: define this symbol if 47loader-tzx tells you to.  It disables the direction-change code in the "dynamic" module, saving a few bytes if the fancy screen effect does not load any blocks backwards.  If this symbol is not defined, direction changes are needed so you must define `LOADER_CHANGE_DIRECTION` to bring the required routine into the loader.
   * `LOADER_DYNAMIC_ONE_BYTE_LENGTHS`: define this symbol if 47loader-tzx tells you to.  If defined, the block lengths in the dynamic table are one byte wide.  47loader-tzx writes dynamic tables like this if no dynamic block is longer than 127 bytes.
+  * `LOADER_DYNAMIC_FIXED_LENGTH`: define this symbol if 47loader-tzx tells you to.  If defined, all dynamic blocks are the same length, so the lengths are omitted from the table; the length is specified at assemble time.  The symbol's value must be the block length that 47loader-tzx specifies in its output.
 
 Because fancy screens generally involve one or more changes of load direction, it is possible that the loader will be left pointing backwards after the screen has loaded.  The tables above indicates which fancy effects this applies to.  Following a fancy screen load, you probably want to load the game forwards, so you must include a call to `loader_change_direction` before loading the game.
 
